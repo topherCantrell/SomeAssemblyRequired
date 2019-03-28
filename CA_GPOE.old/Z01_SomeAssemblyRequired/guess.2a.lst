@@ -1,0 +1,44 @@
+                         .PROCESSOR 6502
+                         
+                         0xF800:
+                         main:
+                         
+f800 : a2 ff               X = #0xFF
+f802 : 9a                  S = X
+                         
+f803 : a9 30               A = #'0'
+f805 : 20 10 f8            CALL ASCIItoBinary
+                         
+f808 : a9 46               A = #'F'
+f80a : 20 10 f8            CALL ASCIItoBinary
+                         
+f80d : 4c 00 f8            GOTO main
+                         
+                         ;---------------------
+                         ASCIItoBinary:
+                         
+f810 : c9 41               A to  #'A'
+f812 : 90 03               GO(<)  ItIsNumeric
+                         
+f814 : 38 e9 37            A = A - #55
+                         
+                         ItIsNumeric:
+                         
+f817 : 38 e9 30            A = A - #'0'
+                         
+f81a : 60                  RTS
+                         
+                         ;---------------------
+                         0xFFFA:                
+fffa : 00 00               .WORD  0x0000        ; NMI vector (not used)
+fffc : 00 f8               .WORD  main          ; Reset vector (start of program)
+fffe : 00 00               .WORD  0x0000        ; IRQ vector
+
+***** Labels *****
+
+F810 ASCIItoBinary
+F817 ItIsNumeric
+F800 main
+
+***** Equates *****
+

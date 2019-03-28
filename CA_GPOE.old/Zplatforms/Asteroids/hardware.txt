@@ -1,0 +1,85 @@
+
+
+
+0000 - 03ff   RAM
+2000 - 2007   asteroid_IN0_r   /* IN0 */
+2400 - 2407   asteroid_IN1_r   /* IN1 */
+2800 - 2803   asteroid_DSW1_r  /* DSW1 */
+3000          avgdvg_go_w
+3200          asteroid_bank_switch_w
+3400          watchdog_reset_w
+3600          asteroid_explode_w
+3a00          asteroid_thump_w
+3c00 - 3c05   asteroid_sounds_w
+3e00          asteroid_noise_reset_w
+
+4000 - 47ff   (&vectorram)
+5000 - 57ff ROM /* vector rom */ 035127.02
+
+6800 - 7fff ROM 035145.01/2, 035144.01/2, 035143.01/2
+
+The DVG sees the RAM/ROM as a single 8K bank with 4000-5FFF mapping
+to 0000-1FFF. The first half of this space is reserved for RAM, but
+only 2K is used. The second half of this space is ROM, but only 2K
+is used. Thus the DVG reads 0000-07FF as RAM and 1000-17FF as ROM.
+
+The DVG reads this memory area as words. Thus RAM extends from word
+address 0000-03FE and ROM extends from word address 0800-0BFE.
+
+The CPU accesses the vector RAM/ROM as bytes at 4000 and 5000.
+
+asteroid_interrupt /* 250 Hz */ 
+
+Sound: asteroid_discrete_interface)
+
+
+
+
+
+INPUT_PORTS_START( asteroid )
+	PORT_START_TAG("IN0")
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	/* Bit 2 and 3 are handled in the machine dependent part. */
+	/* Bit 2 is the 3 KHz source and Bit 3 the VG_HALT bit    */
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_BUTTON3 )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_BUTTON1 )
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_SERVICE ) PORT_NAME("Diagnostic Step") PORT_CODE(KEYCODE_F1)
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_TILT )
+	PORT_SERVICE( 0x80, IP_ACTIVE_HIGH )
+
+	PORT_START_TAG("IN1")
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_COIN1 )
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_COIN2 )
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_COIN3 )
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_START1 )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_START2 )
+	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_BUTTON2 )
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_JOYSTICK_RIGHT ) PORT_2WAY
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_JOYSTICK_LEFT ) PORT_2WAY
+
+	PORT_START_TAG("DSW")
+	PORT_DIPNAME( 0x03, 0x00, DEF_STR( Language ) )
+	PORT_DIPSETTING (	0x00, DEF_STR( English ) )
+	PORT_DIPSETTING (	0x01, DEF_STR( German ) )
+	PORT_DIPSETTING (	0x02, DEF_STR( French ) )
+	PORT_DIPSETTING (	0x03, DEF_STR( Spanish ) )
+	PORT_DIPNAME( 0x04, 0x04, DEF_STR( Lives ) )
+	PORT_DIPSETTING (	0x04, "3" )
+	PORT_DIPSETTING (	0x00, "4" )
+	PORT_DIPNAME( 0x08, 0x00, "Center Mech" ) /*Left same for 2-door mech*/
+	PORT_DIPSETTING (	0x00, "X 1" )
+	PORT_DIPSETTING (	0x08, "X 2" )
+	PORT_DIPNAME( 0x30, 0x00, "Right Mech" )
+	PORT_DIPSETTING (	0x00, "X 1" )
+	PORT_DIPSETTING (	0x10, "X 4" )
+	PORT_DIPSETTING (	0x20, "X 5" )
+	PORT_DIPSETTING (	0x30, "X 6" )
+	PORT_DIPNAME( 0xc0, 0x80, DEF_STR( Coinage ) )
+	PORT_DIPSETTING (	0xc0, DEF_STR( 2C_1C ) )
+	PORT_DIPSETTING (	0x80, DEF_STR( 1C_1C ) )
+	PORT_DIPSETTING (	0x40, DEF_STR( 1C_2C ) )
+	PORT_DIPSETTING (	0x00, DEF_STR( Free_Play ) )
+INPUT_PORTS_END
+

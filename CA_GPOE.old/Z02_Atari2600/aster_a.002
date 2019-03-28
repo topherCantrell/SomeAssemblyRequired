@@ -1,0 +1,499 @@
+DSKINV      = $E453
+CIOV        = $E456
+SIOV        = $E459
+SETVBV      = $E45C
+SYSVBV      = $E45F
+XITVBV      = $E462
+SIOINV      = $E465
+SENDEV      = $E468
+INTINV      = $E46B
+CIOINV      = $E46E
+SELFSV      = $E471
+WARMSV      = $E474
+COLDSV      = $E477
+RBLOKV      = $E47A
+CSOPIV      = $E47D
+PUPDIV      = $E480
+SELFTSV     = $E483
+PENTV       = $E486
+PHUNLV      = $E489
+PHINIV      = $E48C
+GPDVV       = $E48F
+;
+; Code equates
+;
+L0082       = $0082
+L0083       = $0083
+L0084       = $0084
+L0085       = $0085
+L0087       = $0087
+L008D       = $008D
+L0094       = $0094
+L0095       = $0095
+L0096       = $0096
+L0097       = $0097
+L00A5       = $00A5
+L00A7       = $00A7
+L00B5       = $00B5
+L00B7       = $00B7
+L00B9       = $00B9
+L00BC       = $00BC
+L00BD       = $00BD
+L00BE       = $00BE
+L00C5       = $00C5
+L00C7       = $00C7
+L00C8       = $00C8
+L00C9       = $00C9
+L00D1       = $00D1
+L00D2       = $00D2
+L00D5       = $00D5
+L00D6       = $00D6
+L00D7       = $00D7
+L00D8       = $00D8
+L00DC       = $00DC
+L00DD       = $00DD
+L00E0       = $00E0
+L00E3       = $00E3
+L00E5       = $00E5
+L00E6       = $00E6
+L00E7       = $00E7
+L00E8       = $00E8
+L00E9       = $00E9
+L00EA       = $00EA
+L00EB       = $00EB
+L00EC       = $00EC
+L00ED       = $00ED
+L00EF       = $00EF
+L00F1       = $00F1
+L00F2       = $00F2
+L00F3       = $00F3
+L00F4       = $00F4
+L00F5       = $00F5
+L00F6       = $00F6
+L00F7       = $00F7
+L00F8       = $00F8
+L00F9       = $00F9
+L00FA       = $00FA
+L00FB       = $00FB
+L00FC       = $00FC
+L00FD       = $00FD
+L00FE       = $00FE
+L00FF       = $00FF
+L0188       = $0188
+L040E       = $040E
+L0481       = $0481
+L0505       = $0505
+L0800       = $0800
+L0808       = $0808
+L080E       = $080E
+L0A0A       = $0A0A
+L0A0E       = $0A0E
+L0C1C       = $0C1C
+L0D0D       = $0D0D
+L0E02       = $0E02
+L0E08       = $0E08
+L0E0A       = $0E0A
+L0E0E       = $0E0E
+L0F0E       = $0F0E
+L17B3       = $17B3
+L1893       = $1893
+L1D0D       = $1D0D
+L1D82       = $1D82
+L1D8A       = $1D8A
+L1DB6       = $1DB6
+L1DE5       = $1DE5
+L1E01       = $1E01
+L1F1E       = $1F1E
+L1F23       = $1F23
+L1F64       = $1F64
+L1F7F       = $1F7F
+L1F85       = $1F85
+L1FB2       = $1FB2
+L1FC3       = $1FC3
+L2000       = $2000
+L2040       = $2040
+L2221       = $2221
+L2281       = $2281
+L2E2D       = $2E2D
+L326E       = $326E
+L3830       = $3830
+L387C       = $387C
+L3B3A       = $3B3A
+L3F3E       = $3F3E
+L3F7F       = $3F7F
+L4070       = $4070
+L4545       = $4545
+L4E4D       = $4E4D
+L5555       = $5555
+L5B5A       = $5B5A
+L5F5E       = $5F5E
+L6020       = $6020
+L6E6D       = $6E6D
+L7FFE       = $7FFE
+L8020       = $8020
+L8E8D       = $8E8D
+L9B9A       = $9B9A
+L9F9E       = $9F9E
+LAEAD       = $AEAD
+LBBBA       = $BBBA
+LBEBD       = $BEBD
+LCECD       = $CECD
+LD100       = $D100
+LD102       = $D102
+LD21B       = $D21B
+LD3EC       = $D3EC
+LD42B       = $D42B
+LD42D       = $D42D
+LD4AB       = $D4AB
+LD586       = $D586
+LD700       = $D700
+LDBDA       = $DBDA
+LDDC8       = $DDC8
+LDDD7       = $DDD7
+LDE75       = $DE75
+LDE7D       = $DE7D
+LDE85       = $DE85
+LDE8D       = $DE8D
+LDE95       = $DE95
+LDFDE       = $DFDE
+LDFF0       = $DFF0
+LEEED       = $EEED
+LF9DA       = $F9DA
+LFBFA       = $FBFA
+LFFF9       = $FFF9
+LFFFE       = $FFFE
+LFFFF       = $FFFF
+;
+; Start of code
+;
+            *= $1000
+;
+            jmp LF9DA
+            sta CASINI
+            sta ICAX1Z
+            sta ABUFPT
+            stx RAMLO+1
+            jmp (L00E3)
+            nop
+            php
+L1010:      plp
+            nop
+            nop
+            lda L00E9
+            sta ICAX2Z
+            sta ICHIDZ
+            lda #$83
+            sta L00E3
+            ldx L00E7
+            lda #$00
+            dex
+            bne L1029
+            sta POKMSK
+L1026:      jmp LD100
+L1029:      dex
+            bne L1030
+            sta POKMSK
+            beq L1026
+L1030:      dex
+            bne L1037
+            sta POKMSK
+            beq L1026
+L1037:      dex
+            bne L103F
+            sta POKMSK
+            jmp LD100
+L103F:      dex
+            nop
+            sta POKMSK
+            jmp LD102
+            ldx L00E7
+            dex
+            bne L1050
+            sta POKMSK
+            nop
+            beq L1055
+L1050:      dex
+            bne L1058
+            sta POKMSK
+L1055:      nop
+            beq L105D
+L1058:      dex
+            bne L1060
+            sta POKMSK
+L105D:      nop
+            beq L1065
+L1060:      dex
+            bne L1068
+            sta POKMSK
+L1065:      nop
+            beq L106D
+L1068:      dex
+            bne L1070
+            sta POKMSK
+L106D:      nop
+            beq L1074
+L1070:      dex
+            nop
+            sta POKMSK
+L1074:      sta ICAX2Z
+            lda L00E9
+            sta ICHIDZ
+            lda #$83
+            sta L00E3
+            lda #$00
+            jmp LD100
+            ldx #$00
+            lda (L00EF,X)
+            bne L10A2
+            inc L00DC
+            ldx L00DC
+            lda L0095,X
+            sta ICAX2Z
+            sta L00E9
+            lsr A
+            and #$07
+            sta L00E7
+            lda #$C0
+            sta L00E3
+            lda #$00
+            tax
+            jmp LD100
+L10A2:      sta ICAX2Z
+            sta ICHIDZ
+            sta L00F3
+            ldx L00F8
+            lda LDE75,X
+            sta TRAMSZ
+            ldx #$00
+            lda (L00EB,X)
+            inc L00EB
+            inc L00EF
+            nop
+            nop
+            nop
+            ldx L00F3
+            nop
+            jmp LD102
+            ldx L00DC
+            lda L00A7,X
+            and #$70
+            sta L00EB
+            sta L00EF
+            sta ICAX2Z
+            lda L00A7,X
+            and #$07
+            sta L00F8
+            nop
+            nop
+            nop
+            tya
+            cmp L0083,X
+            bne L10F4
+            lda L00E9
+            ror A
+            ldx #$46
+            bcs L10EB
+            ldx #$0E
+            stx L00E3
+            lda #$00
+            tax
+            jmp LD102
+L10EB:      stx L00E3
+            lda #$00
+            tax
+            jmp LD102
+L10F4:      lda #$00
+            tax
+            jmp LD100
+L10FA:      jmp LD42B
+            .byte $00,$00,$00
+            sta CASINI
+            sta ICAX1Z
+            sta DSKUTL+1
+            stx RAMLO
+            jmp (L00E5)
+            iny
+            php
+            plp
+            cpy #$59
+            beq L10FA
+            lda L00EA
+            sta ICAX2Z
+            sta ICDNOZ
+            lda #$88
+            sta L00E5
+            ldx L00E8
+            lda #$00
+            dex
+            bne L1128
+            sta BRKKEY
+L1125:      jmp M3PF
+L1128:      dex
+            bne L112F
+            sta BRKKEY
+            beq L1125
+L112F:      dex
+            bne L1136
+            sta BRKKEY
+            beq L1125
+L1136:      dex
+            bne L113E
+            sta BRKKEY
+            jmp M3PF
+L113E:      dex
+            nop
+            sta BRKKEY
+            jmp P1PF
+            ldx L00E8
+            dex
+            bne L114F
+            sta BRKKEY
+            nop
+            beq L1154
+L114F:      dex
+            bne L1157
+            sta BRKKEY
+L1154:      nop
+            beq L115C
+L1157:      dex
+            bne L115F
+            sta BRKKEY
+L115C:      nop
+            beq L1164
+L115F:      dex
+            bne L1167
+            sta BRKKEY
+L1164:      nop
+            beq L116C
+L1167:      dex
+            bne L116F
+            sta BRKKEY
+L116C:      nop
+            beq L1173
+L116F:      dex
+            nop
+            sta BRKKEY
+L1173:      sta ICAX2Z
+            lda L00EA
+            sta ICDNOZ
+            iny
+            cpy #$59
+            beq L11CC
+            lda #$88
+            sta L00E5
+            lda #$00
+            nop
+            jmp P1PF
+            ldx #$00
+            lda (L00F1,X)
+            bne L11AC
+            inc L00DD
+            ldx L00DD
+            lda L0095,X
+            sta ICAX2Z
+            sta L00EA
+            lsr A
+            and #$07
+            sta L00E8
+            iny
+            cpy #$59
+            beq L11CC
+            lda #$CF
+            sta L00E5
+            lda #$00
+            tax
+            jmp M3PF
+L11AC:      sta ICAX2Z
+            sta ICDNOZ
+            sta L00F3
+            ldx L00F9
+            lda LDE75,X
+            sta CMCMD
+            ldx #$00
+            lda (L00ED,X)
+            inc L00ED
+            inc L00F1
+            iny
+            cpy #$59
+            beq L11CC
+            ldx L00F3
+            nop
+            jmp P1PF
+L11CC:      jmp LD42B
+            ldx L00DD
+            lda L00A7,X
+            and #$70
+            sta L00ED
+            sta L00F1
+            sta ICAX2Z
+            lda L00A7,X
+            and #$07
+            sta L00F9
+            tya
+            cmp L0083,X
+            bne L120D
+            lda L00EA
+            ror A
+            ldx #$45
+            bcs L1200
+            ldx #$0B
+            stx L00E5
+            lda #$00
+            iny
+            cpy #$59
+            beq L1218
+            tax
+            jmp P1PF
+L11FC:      jmp LD42D
+            .byte $00
+L1200:      stx L00E5
+            lda #$00
+            iny
+            cpy #$59
+            beq L11FC
+            tax
+            jmp P1PF
+L120D:      iny
+            cpy #$59
+            beq L11CC
+            lda #$00
+            tax
+            jmp M3PF
+L1218:      jmp LD42D
+            ldx L00F3
+            lda L00FC
+            sta CASINI
+            sta CASINI
+L1223:      sta DOSINI+1
+            lda L00FD
+            sta APPMHI
+            lda L00FE
+            sta APPMHI+1
+            lda LDDC8,X
+            sta DSKUTL+1
+            lda LDDD7,X
+            sta ABUFPT
+            dex
+            lda #$00
+            sta DOSINI+1
+            ldy L00F7
+            sta APPMHI
+            lda (L00F4),Y
+            ldy L00FF
+            sty APPMHI+1
+            ldy L00FC
+            sty DOSINI+1
+            ldy L00FD
+            nop
+            sty APPMHI
+            ldy L00F8
+            ora (L00F4),Y
+            sta L00FD
+            lda L00FE
+            sta APPMHI+1
+            ldy L00F9
+            lda (L00F4),Y
+            ldy L00FA
+            ora (L00F4),Y
+            sta L00FE
+            ldy L00FB

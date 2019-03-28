@@ -1,0 +1,13 @@
+------------------------------------------------------------------------
+              PseudoSam 85 cross-assembler v1.1.00             V1 DS
+------------------------------------------------------------------------
+PseudoSam 85 is a cross-assembler for the Intel 8085 and related processors.
+It is a user-supported assembler useful for those wishing to develop 8085
+based products.  Programs are converted directly into Intel Hex object files.
+
+A85      COM  PseudoSam 85 assembler version 1.1.00.
+A85      DOC  Documentation for PseudoSam 85.
+EXAMPLE  ASM  Example file for PseudoSam 85.
+SYN      ASM  Synonym file to rename assembler directives.
+MNEMTEST ASM  Mnemnonics test program.
+

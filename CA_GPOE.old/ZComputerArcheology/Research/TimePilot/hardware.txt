@@ -1,0 +1,141 @@
+
+=============================== MAIN BOARD =========================
+
+------------------ VIDEO SYSTEM -----------------------------
+
+------------------ MEMORY MAP -------------------------------
+Code ROM
+TM1 0000-1FFF
+TM2 2000-3FFF
+TM3 4000-5FFF
+
+R/W Memory
+A000-A3FF Color RAM (1K Bytes)
+A400-A7FF Video RAM (1K Bytes)
+A800-AFFF RAM
+B000-B7FF Sprite RAM
+
+C000-C360 Memory-mapped IO
+
+Graphics ROM
+TM6 ?
+TM4 ?
+TM5 ?
+
+------------------ IO ---------------------------------------
+Memory Mapped Ports
+read:
+c000      video scan line. This is used by the program to multiplex the cloud
+          sprites, drawing them twice offset by 128 pixels.
+c200      DSW2 (See detail below)
+c300      IN0  (See detail below)
+c320      IN1  (See detail below)
+c340      IN2  (See detail below)
+c360      DSW1 (See detail below)
+
+write:
+c000      command for the audio CPU
+c200      watchdog reset
+c300      interrupt enable
+c301      ?
+c302      flip screen
+c303      ?
+c304      trigger interrupt on audio CPU
+c305-c307 ?
+c308      ?
+
+*** IN0 Coins and Start
+Bit 0: IP_ACTIVE_LOW, IPT_COIN1
+Bit 1: IP_ACTIVE_LOW, IPT_COIN2
+Bit 2: IP_ACTIVE_LOW, IPT_COIN3
+Bit 3: IP_ACTIVE_LOW, IPT_START1
+Bit 4: IP_ACTIVE_LOW, IPT_START2
+Bit 5: IP_ACTIVE_LOW, IPT_UNKNOWN
+Bit 6: IP_ACTIVE_LOW, IPT_UNKNOWN
+Bit 7: IP_ACTIVE_LOW, IPT_UNKNOWN
+
+*** IN1 Joystick and Fire
+Bit 0: IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT
+Bit 1: IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT
+Bit 2: IP_ACTIVE_LOW, IPT_JOYSTICK_UP
+Bit 3: IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN
+Bit 4: IP_ACTIVE_LOW, IPT_BUTTON1
+Bit 5: IP_ACTIVE_LOW, IPT_UNKNOWN
+Bit 6: IP_ACTIVE_LOW, IPT_UNKNOWN
+Bit 7: IP_ACTIVE_LOW, IPT_UNKNOWN
+
+*** IN2 Cocktail Joystick and Fire
+Bit 0: IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT
+Bit 1: IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT
+Bit 2: IP_ACTIVE_LOW, IPT_JOYSTICK_UP
+Bit 3: IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN
+Bit 4: IP_ACTIVE_LOW, IPT_BUTTON1
+Bit 5: IP_ACTIVE_LOW, IPT_UNKNOWN
+Bit 6: IP_ACTIVE_LOW, IPT_UNKNOWN
+Bit 7: IP_ACTIVE_LOW, IPT_UNKNOWN 
+
+*** DSW0 Various DIP Settings
+bbbb   aaaa
+Slot2  Slot1
+
+0000 Free Play
+0001 4 Coin / 3 Credit
+0010 4 Coin / 1 Credit
+0011 3 Coin / 4 Credit
+0100 3 Coin / 2 Credit
+0101 3 Coin / 1 Credit
+0110 2 Coin / 5 Credit
+0111 2 Coin / 3 Credit
+1000 2 Coin / 1 Credit
+1001 1 Coin / 7 Credit
+1010 1 Coin / 6 Credit
+1011 1 Coin / 5 Credit
+1100 1 Coin / 4 Credit
+1101 1 Coin / 3 Credit
+1110 1 Coin / 2 Credit
+1111 1 Coin / 1 Credit
+
+*** DSW1 Various DIP Settings
+sdddbcll
+
+s = Demo Sound
+0 On
+1 Off
+
+ddd = Difficulty
+000 Hardest
+001 
+010
+011 Average
+100
+101
+110
+111 Easiest
+
+b = Bonus
+0 2000, 6000
+1 1000, 5000
+
+c = Cabinet type
+0 Upright
+1 Cocktail
+
+lll = Number of lives
+00 ?255?
+01 5
+10 4
+11 3
+
+=============================== AUDIO BOARD ========================
+
+------------------ MEMORY MAP -------------------------------
+TM7 0000-1FFF
+
+3000-???? RAM
+
+------------------ IO ---------------------------------------
+Sound and some IO is processed through two AY38910 chips.
+Chip 0-READ/WRITE 4000
+Chip 0-CNTRL 5000
+Chip 1-READ/WRITE 6000
+Chip 1-CNTRL 7000

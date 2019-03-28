@@ -1,0 +1,16 @@
+------------------------------------------------------------------------
+              PseudoSam 80z cross-assembler v1.1.00             V1 DS
+------------------------------------------------------------------------
+PseudoSam 80z is a cross-assembler for the Zilog z80, National Semiconductor
+NSC800 and related processors.
+
+It is a user-supported assembler useful for those wishing to develop z80
+based products.  Programs are converted directly into Intel Hex object files.
+
+A80z     COM  PseudoSam 80z assembler version 1.1.00.
+A80z     DOC  Documentation for PseudoSam 80z.
+EXAMPLE  ASM  Example file for PseudoSam 80z.
+SYN      ASM  Synonym file to rename assembler directives.
+MNEMTEST ASM  Mnemnonics test program.
+READ     ME   A message from the Author.
+

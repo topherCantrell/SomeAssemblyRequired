@@ -1,0 +1,115 @@
+                         .PROCESSOR 6502
+                         
+                         .EQU HW_TextDisplay = 0x2000
+                         .EQU HW_Keyboard = 0xD000
+                         
+                         0xF800:
+                         main:
+f800 : a9 20               A = #' '
+f802 : 20 42 f8            CALL ClearScreen
+                         
+f805 : a0 80               Y = #32*4
+f807 : a2 1a               X = #MESSAGES_3 - MESSAGES
+f809 : 20 0f f8            CALL PrintMessage
+                         
+                         Done:
+f80c : 4c 0c f8            GOTO Done
+                         
+                         ;---------------------
+                         PrintMessage:
+                         
+f80f : bd 1d f8            A = MESSAGES[X]
+f812 : f0 08               GO(ZERO) PM_Out
+f814 : 99 00 20            HW_TextDisplay[Y] = A
+f817 : e8                  ++X
+f818 : c8                  ++Y
+f819 : 4c 0f f8            GOTO PrintMessage
+                         PM_Out:
+f81c : 60                  RETURN
+                         
+                         MESSAGES:
+f81d : 48 65 6c 6c 6f 20 57 6f 72 6c 64 21 00    .BYTE  "Hello World!",0
+                         MESSAGES_2:
+f82a : 48 6f 77 20 61 72 65 20 79 6f 75 3f 00    .BYTE  "How are you?",0
+                         MESSAGES_3:
+f837 : 49 20 61 6d 20 66 69 6e 65 2e 00    .BYTE  "I am fine.",0
+                         
+                         ;---------------------
+                         ClearScreen:
+                         
+f842 : a2 00               X = #0
+                         CS_1:
+f844 : 9d 00 20            HW_TextDisplay[X] = A
+f847 : e8                  ++x
+f848 : d0 fa               GO(!ZERO) CS_1
+f84a : 60                  RETURN
+                         
+                         ;---------------------
+                         IsValidHexKey:
+                         
+f84b : c9 30               A to #'0'
+f84d : 90 14               GO(<) NoGood
+f84f : c9 3a               A to #'9'+1
+f851 : 90 12               GO(<) Good
+                         
+f853 : c9 41               A to #'A'
+f855 : 90 0c               GO(<) NoGood
+f857 : c9 47               A to #'F'+1
+f859 : 90 0a               GO(<) Good
+                         
+f85b : c9 61               A to #'a'
+f85d : 90 04               GO(<) NoGood
+f85f : c9 67               A to #'f'+1
+f861 : 90 03               GO(<) GoodLower
+                         
+                         NoGood:
+f863 : a9 00               A = #0
+                         Good:
+f865 : 60                  RETURN
+                         
+                         GoodLower:
+f866 : 38 e9 20            A = A - #('a'-'A')
+f869 : 60                  RETURN
+                         
+                         ;---------------------
+                         ASCIItoBinary:
+                         
+f86a : c9 41               A to #'A'
+f86c : 90 03               GO(<) ItIsNumeric
+                         
+f86e : 38 e9 07            A = A - #('A'-10+'0')
+                         
+                         ItIsNumeric:
+                         
+f871 : 38 e9 30            A = A - #'0'
+                         
+f874 : 60                  RETURN
+                         
+                         ;---------------------
+                         0xFFFA:                
+fffa : 00 00               .WORD  0x0000        ; NMI vector (not used)
+fffc : 00 f8               .WORD  main          ; Reset vector (start of program)
+fffe : 00 00               .WORD  0x0000        ; IRQ vector
+
+***** Labels *****
+
+F86A ASCIItoBinary
+F844 CS_1
+F842 ClearScreen
+F80C Done
+F865 Good
+F866 GoodLower
+F84B IsValidHexKey
+F871 ItIsNumeric
+F81D MESSAGES
+F82A MESSAGES_2
+F837 MESSAGES_3
+F863 NoGood
+F81C PM_Out
+F80F PrintMessage
+F800 main
+
+***** Equates *****
+
+D000 HW_Keyboard
+2000 HW_TextDisplay

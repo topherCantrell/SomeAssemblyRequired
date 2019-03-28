@@ -1,0 +1,212 @@
+                         .PROCESSOR 6502
+                         
+                         .EQU HW_TextDisplay = 0x2000
+                         .EQU HW_Keyboard = 0xD000
+                         .EQU HW_Random = 0xC000
+                         
+                         .EQU RAM_MyNumber = 0
+                         .EQU RAM_Temp = 1
+                          
+                         
+                         0xF800:
+                         
+                         main:
+                         
+f800 : ad 00 c0            A = HW_Random
+f803 : 85 00               RAM_MyNumber = A
+f805 : a9 20               A = #32
+f807 : 20 de f8            CALL ClearScreen
+                         
+f80a : a2 00               X = #0
+f80c : a0 00               Y = #0
+f80e : 20 7d f8            CALL PrintMessage
+                         
+                         GuessLoop:
+f811 : a2 1f               X = #(MESSAGES_GUESS - MESSAGES)
+f813 : a0 20               Y = #32
+f815 : 20 7d f8            CALL PrintMessage
+                         
+f818 : a0 27               Y = #39
+f81a : 20 67 f8            CALL InputByte
+                         
+f81d : 85 01               RAM_Temp = A
+f81f : a9 20               A = #32
+f821 : 20 de f8            CALL ClearScreen
+f824 : a5 01               A = RAM_Temp
+                         
+f826 : a0 00               Y = #0
+                         
+f828 : c5 00               A to RAM_MyNumber
+f82a : f0 0f               GO(==) G_Win
+f82c : 90 05               GO(<) G_Higher
+                         
+                         G_Lower:
+f82e : a2 4c               X = #(MESSAGES_LOWER - MESSAGES)
+f830 : 4c 35 f8            GOTO G_Cont
+                         G_Higher:
+f833 : a2 44               X = #(MESSAGES_HIGHER - MESSAGES)
+                         G_Cont:
+f835 : 20 7d f8            CALL PrintMessage
+f838 : 4c 11 f8            GOTO GuessLoop
+                         
+                         G_Win:
+f83b : a2 26               X = #(MESSAGES_GOT_IT - MESSAGES)
+f83d : 20 7d f8            CALL PrintMessage   
+                         
+                         G_Wait:
+f840 : ad 00 d0            A = HW_Keyboard
+f843 : f0 fb               GO(ZERO) G_Wait
+                         
+f845 : 4c 00 f8            GOTO main
+                         
+                         ;---------------------
+                         InputDigit:
+f848 : b9 00 20            A = HW_TextDisplay[Y]
+f84b : c9 3f               A to #'?'
+f84d : f0 05               GO(==) ID_Cursor1
+f84f : a9 3f               A = #'?'
+f851 : 4c 56 f8            GOTO ID_Cursor2
+                         ID_Cursor1:
+f854 : a9 20               A = #' '
+                         ID_Cursor2:
+f856 : 99 00 20            HW_TextDisplay[Y] = A
+f859 : ad 00 d0            A = HW_Keyboard
+f85c : 20 e7 f8            CALL IsValidHexKey
+f85f : c9 00               A to #0
+f861 : f0 e5               GO(==) InputDigit
+f863 : 99 00 20            HW_TextDisplay[Y] = A
+f866 : 60                  RETURN
+                         
+                         ;---------------------
+                         InputByte:
+f867 : 20 48 f8            CALL InputDigit
+                         
+f86a : 20 06 f9            CALL ASCIItoBinary
+f86d : 0a                  A<<1
+f86e : 0a                  A<<1
+f86f : 0a                  A<<1
+f870 : 0a                  A<<1
+f871 : 85 01               RAM_Temp = A
+                         
+f873 : c8                  ++Y
+f874 : 20 48 f8            CALL InputDigit
+f877 : 20 06 f9            CALL ASCIItoBinary
+f87a : 05 01               A = A | RAM_Temp
+f87c : 60                  RETURN
+                         
+                         ;---------------------
+                         PrintMessage:
+                         
+f87d : bd 8b f8            A = MESSAGES[X]
+f880 : f0 08               GO(ZERO) PM_Out
+f882 : 99 00 20            HW_TextDisplay[Y] = A
+f885 : e8                  ++X
+f886 : c8                  ++Y
+f887 : 4c 7d f8            GOTO PrintMessage
+                         PM_Out:
+f88a : 60                  RETURN
+                         
+                         MESSAGES:
+f88b : 49 20 68 61 76 65 20 61 20 6e 75 6d 62 65 72 20 66 72 6f 6d 20 30 30 20 74 6f 20 46 46 2e 00    .BYTE  "I have a number from 00 to FF.",0
+                         MESSAGES_GUESS:
+f8aa : 47 75 65 73 73 3a 00    .BYTE  "Guess:",0
+                         MESSAGES_GOT_IT:
+f8b1 : 59 6f 75 20 67 6f 74 20 69 74 21 20 50 72 65 73 73 20 61 6e 79 20 6b 65 79 20 2e 2e 2e 00    .BYTE  "You got it! Press any key ...",0
+                         MESSAGES_HIGHER:
+f8cf : 48 69 67 68 65 72 21 00    .BYTE  "Higher!",0
+                         MESSAGES_LOWER:
+f8d7 : 4c 6f 77 65 72 21 00    .BYTE  "Lower!",0
+                         
+                         ;---------------------
+                         ClearScreen:
+                         
+f8de : a2 00               X = #0
+                         CS_1:
+f8e0 : 9d 00 20            HW_TextDisplay[X] = A
+f8e3 : e8                  ++X
+f8e4 : d0 fa               GO(!ZERO) CS_1
+f8e6 : 60                  RETURN
+                         
+                         ;---------------------
+                         IsValidHexKey:
+                         
+f8e7 : c9 30               A to #'0'
+f8e9 : 90 14               GO(<) NoGood
+f8eb : c9 3a               A to #'9'+1
+f8ed : 90 12               GO(<) Good
+                         
+f8ef : c9 41               A to #'A'
+f8f1 : 90 0c               GO(<) NoGood
+f8f3 : c9 47               A to #'F'+1
+f8f5 : 90 0a               GO(<) Good
+                         
+f8f7 : c9 61               A to #'a'
+f8f9 : 90 04               GO(<) NoGood
+f8fb : c9 67               A to #'f'+1
+f8fd : 90 03               GO(<) GoodLower
+                         
+                         NoGood:
+f8ff : a9 00               A = #0
+                         Good:
+f901 : 60                  RETURN
+                         
+                         GoodLower:
+f902 : 38 e9 20            A = A - #('a'-'A')
+f905 : 60                  RETURN
+                         
+                         ;---------------------
+                         ASCIItoBinary:
+                         
+f906 : c9 41               A to #'A'
+f908 : 90 03               GO(<) ItIsNumeric
+                         
+f90a : 38 e9 07            A = A - #('A'-10+'0')
+                         
+                         ItIsNumeric:
+                         
+f90d : 38 e9 30            A = A -#'0'
+                         
+f910 : 60                  RETURN
+                         
+                         ;---------------------
+                         0xFFFA:                
+fffa : 00 00               .WORD  0x0000        ; NMI vector (not used)
+fffc : 00 f8               .WORD  main          ; Reset vector (start of program)
+fffe : 00 00               .WORD  0x0000        ; IRQ vector
+
+***** Labels *****
+
+F906 ASCIItoBinary
+F8E0 CS_1
+F8DE ClearScreen
+F835 G_Cont
+F833 G_Higher
+F82E G_Lower
+F840 G_Wait
+F83B G_Win
+F901 Good
+F902 GoodLower
+F811 GuessLoop
+F854 ID_Cursor1
+F856 ID_Cursor2
+F867 InputByte
+F848 InputDigit
+F8E7 IsValidHexKey
+F90D ItIsNumeric
+F88B MESSAGES
+F8B1 MESSAGES_GOT_IT
+F8AA MESSAGES_GUESS
+F8CF MESSAGES_HIGHER
+F8D7 MESSAGES_LOWER
+F8FF NoGood
+F88A PM_Out
+F87D PrintMessage
+F800 main
+
+***** Equates *****
+
+D000 HW_Keyboard
+C000 HW_Random
+2000 HW_TextDisplay
+0000 RAM_MyNumber
+0001 RAM_Temp

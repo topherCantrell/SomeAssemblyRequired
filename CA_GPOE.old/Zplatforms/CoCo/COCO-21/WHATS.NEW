@@ -1,0 +1,202 @@
+*******************************************************************************
+* The new COCO and COCO3 emulators have limited support in Windows 2000 & XP. *
+* This is because the emulator is written in 16bit DOS mode and accesses      *
+* the PC's hardware directly (Floppy, Sound, Serial, EMS & Video).            *
+*                                                                             *
+* Windows 2000/XP have very limited support of 16bit DOS mode so greatly      *
+* limit the COCO emulators functionality.                                     *
+*                                                                             *
+* The ideal platform for the emulators is a dedicated PC, 233-333mhz          *
+* (easily found at a thrift store for $5 to $25 or maybe in your closet)      *
+* running in stand alone DOS.                                                 *
+*                                                                             *
+* All you need is MSDOS v6 or greater, a 512k video card, SoundBlaster 16     *
+* compatible sound card, 5.25" floppy plus Sound, Mouse and EMM386 drivers.   *
+* With a batch file you have a PC that boots in seconds and automatically     *
+* boots your favorite COCO emulator.                                          *
+*******************************************************************************
+
+Whats new in version 2.10
+
+Added support for Glenside's IDE controller.
+    Drivers and cartridge included in this distribution.
+
+Added support for the Dallas Semiconductor's DS1315 Clock Chip
+    (Same clock used by Cloud-9)
+
+Support for 6309 CPU complete.
+
+Changes to palettes & keyboard files
+    Fixed errors in COCO mode's keyboard table.
+
+Added non-documented 6809 instructions and corrected EXG & TFR instructions
+    to give proper results with invalid register combinations.
+
+Faster 6809/6309 instruction set.
+
+Changed snapshot functions. Pushing [F7] now brings up a snapshot function
+    screen. This screen allows:
+        Loading and saving of snapshots (saved machine state)
+        Loading of .BIN files from the PC directory
+        Loading of cartridge .PAK files
+        Saving the COCO screen to a .BMP file.
+
+Added screen capture to emulator. Pushing [F7] and then pushing [F9] when the
+    snapshot screen appears will return to the emulator screen and save the
+    current COCO screen to a COCO-xx.BMP file, where [xx] is a number from
+    00 to 99 starting at 00 each time the emulator is started and incrementing
+    by one each time a screen is saved.
+Note: Screens saved during a previous emulator session will be overwritten,
+    if they are not renamed or copied, since the screen save filenames always
+    start with COCO-00.BMP.
+
+The memory format of snapshot files has changed so snapshots from previous
+    versions are not compatible with this version.
+
+Snapshots now contain emulator type and version info. This info should help
+    prevent the loading of non compatible snapshots.
+
+Fixed error with MUX that caused joystick to not work in some games.
+
+===============================================================================
+Whats new in version 2.00
+
+Completely new display screen routines.
+1 - The display screen resolution has been changed to 640x480x256 for faster
+    screen refresh and more color capabilities.
+2 - The display screen is now drawn 1 line every 63 micro seconds or a complete
+    screen every 1/60 of a second.
+3 - The display screen is synchronized to the COCO's horizontal and vertical
+    interrupts so mixed display modes and extra colors are possible when mode
+    changes are linked with the COCO's interrupts.
+    (compatibility with some games and drawing programs)
+Note1:
+    The new display screen adds a lot of overhead even when running programs
+    without video I/O. This has had an impact on the max speed in turbo mode.
+Note2:
+    The new video routines require new fonts and palettes so be sure to copy
+    the new fonts along with the new emulator program.
+
+The format for the COCO BASIC ROMs has been changed. For COCO software
+    compatibility an original COCO image (BASIC1.ROM) and a COCO2 image
+    (BASIC2.ROM) are now included. The image loaded at emulator boot up is
+    determined by the computer type selected in the options screen.
+
+The COCO and COCO2 fonts have a different spacing at the top of the characters.
+    The emulator now selects the spacing based on the computer type option.
+
+Added an option to change the screen refresh rate. This option has been added
+    to lessen the impact video refresh has had on the emulator's turbo
+    function. The rates are 60hz (normal), 50hz, 10hz & 1hz. The non-standard
+    rates are for non-display critical programs that need maximum speed.
+WARNING:
+    The non-standard refresh rates also slow the COCO's horizontal & vertical
+    interrupts. This will effect the COCO's TIMER function, interrupt based
+    serial I/O and any other program that uses the video interrupts.
+
+Added new 32/64 & 40/80 column text modes (must be enabled, see below).
+
+In COCO mode the semigraphic 6 mode can have real text and 2 colors of
+   block graphics or 4 colors of block graphics (must be enabled, see below).
+
+Added new 512 by 2 color and 256 by 4 color graphic modes.
+
+Added new 6809 & I/O mapped instruction to set and get the video refresh rate.
+    The default rate (set in the option screen) is restored upon COCO reset.
+
+Added support for PAGE in the SAM registers $FFD4 & $FFD5.
+    On 64k systems setting PAGE to 1 (writing to $FFD5) mapped the upper
+    32k of RAM into the $0000-$7FFF address space.
+
+Added ability to enable/disable new text modes, semigraphics 6 enhancements
+    and wide screen mode.
+
+Added ability to enable/disable enhanced M6809 instructions.
+
+Added ability to enable/disable I/O mapped instructions.
+
+Corrected problem reading JV1/JV3 disks that were not zero filled out to their
+    defined track length. The emulator will now return a zero filled sector
+    instead of reporting "record not found".
+
+fixed error that occurred when reset was pushed during the playback of a
+    buffered Orchestra-90 file that caused Orchestra-90 buffering functions
+    to quit working.
+
+Fixed error that deactivated SoundBlaster sound after a shell to DOS command.
+
+Fixed error that prevented a SoundBlaster on DMA #3 from functioning properly.
+
+Changed FDC routines to properly read side 2 of a REAL floppy disk when using
+    a FD520 disk controller ROM.
+
+Included a new FDC controller ROM that accesses side 2 of a REAL or virtual
+    floppy when drive 2 or 3 are accessed.
+    (drive 2 = side 2 of drive 0, drive 3 = side 2 of drive 1)
+
+===============================================================================
+Whats new in version 1.30
+
+Fixed timing problems with HSYNC interrupt.
+
+Fixed cycle count errors in TFR, SWI, SWI2 & SWI3 instructions
+   and NMI, IRQ & FIRQ interrupts
+
+Fixed error in CLR (memory) instruction which didn't read memory before
+   clearing it. (caused problem in Arkanoid)
+
+Fixed errors in Audio/Wave recorder
+   'END' didn't advance to end of file when first loaded
+   "Force Motor On" message was not displayed
+
+fixed error in snapshot screens that allowed more characters to be
+   entered than could be displayed.
+
+Minor corrections to fonts.
+
+Made changes to JV3 routines to use existing buffer area to save memory space.
+
+A new feature has been added to the Audio/Wave recorder.
+   Tape copy option allows copying audio tapes directly to a virtual tape.
+
+===============================================================================
+Whats new in version 1.22
+
+Fixed obscure error in cartridge selection routine that would lock up
+   emulator upon exit from file selection screen if the last entry was selected
+   and it was a directory.
+
+===============================================================================
+Whats new in version 1.21
+
+Added RS-232 & Modem status lights on the status line
+
+===============================================================================
+Whats new in version 1.20
+
+Fixed error in disk rotation speed
+
+Added support for the RS-232 & Modem cartridges
+
+===============================================================================
+Whats new in version 1.10
+
+Fixed error in fonts.
+
+Fixed error in PIA routines that could cause joystick problems.
+
+Emulator can now emulate up to a 64k cartridge ROM image (bank switched).
+
+A point and shoot interface has been added to the cartridge selection screen.
+
+New keyboard emulation of joysticks. When enabled, pushing Num-Lock toggles use
+   of arrow keys as keyboard arrows or joystick X/Y axis. CTRL and ALT are
+   right and left joystick buttons when enabled and toggled.
+
+In order for patches and new features to work the new keyboard and font files
+   must be installed (included in distribution).
+
+===============================================================================
+Whats new in version 1.01
+
+Added PC mouse functions to emulator

@@ -1,0 +1,121 @@
+2000	Cleared at the end of DrawAlienSprite routine
+
+200b	?012e? Holds pixel position for alien sprite drawing 
+
+2015	Checked to see if player is alive
+	FFs = Alive
+
+; Player descriptor (5 byte)
+2018	Sprite ...
+ 2019   ... location
+ 201A   Player's pixel number ...
+ 201B   ... Player's X coordinate
+ 201C	Bytes in sprite
+
+201D	Next movement command for demo
+
+; Player shot descriptor
+2025	0 if available, 1 if just initiated, 5 if alien explosion is in progress
+	4 if alien has exploded (remove from active duty)
+ 2026
+ 2027
+ 2028
+ 2029    Y coordinate???
+ 202A
+ 202B
+
+202D	Fire-button bounce flag. 1 if button has been
+	handled but remains held down. 0 if button has
+	cycled.
+
+2062
+2063
+2064	Pixel number of exploding alien
+ 2065
+2066
+
+2067	Active player indicator 1 or 2
+
+206b	1 when only one alien is on screen
+
+2072	Set to 80 (upper bit) with ISR at 0010
+	Set to 00 with ISR 0008 at 008d
+	Checked by routine at 1a06
+
+2082	??? Number of aliens on active screen
+
+2087	?Five byte descriptor for something?
+;aa bb cc dd ee
+;aabb ?Sprite location?
+;ccdd ?Pixel number?
+;ee   ?Sprite rows?
+
+2093	Read by credit-bumping routine at 005d
+	Set to 1 entering wait-for-start-button loop at 0767
+	Cleared by TILT handling routine at 17fe
+
+2094	Holds current status of sound port (out #03)
+
+2099	Duration counter for ExtraShip sound
+
+209A	1 if TILT handling is in progress
+
+20C0	Counter decremented in ISR
+20CE	Two player game flag (0 = 1 player)
+
+20E3    Player 1 : Extra ship has been awarded = 0
+ 20E4   Player 2 : Extra ship has been awarded = 0
+20E5    ??? Player 1 ???
+ 20E6   ??? Player 2 ???
+20E7    ??? Player 1 ???
+ 20E8   ??? Player 2 ???
+
+20E9	Read by credit-bumping routine at 0042
+	Read by ? at 0090
+	Set to 0 by ? at 09f3
+	Set to 1 by ? at 19d1
+	Cleared by ? at 19d7
+
+20EA	1 if credit is waiting to be handled, 0 if no coins deposited
+20EB	Number of credits (99 max)
+
+20ED	Pointer to demo commands
+ 20EE
+
+20EF	Demo play = 0, Player play = not 0
+
+;ScoreDescriptors
+;sl sm cl cm
+;ss = score
+;cc = screen coordinates
+20F4	Hi-Score Descriptor
+20F8	Player1 Score Descriptor
+20FC	Player2 Score Descriptor
+
+;Player Data is 0100 bytes long
+;Player1 2100-21FF
+;Player2 2200-22FF
+2p00 - 2p37 : Alien ship indicators (0=dead)
+; 11 byte descriptors ... how many?
+2pFF: Ships remaining after current dies
+
+2400 - SCREEN BEGINS
+
+
+Dig Notes
+
+The code isn't constructed all that well. There is a lot
+of jumping around making the code hard to follow. Take the
+credit registration routine in the ISR.
+
+There are a lot of NOPs all over the place for questionable
+reasons. For insta
+
+Needless stacks at 1439 for instance -- a loop with a
+push/pop in it. What a waste. Memory access? How else
+could it be done?
+
+Cool technique at 12b -- conditional call to do some
+added processing. Very slick.
+
+At 142D, HL is incremented then POPed from the stack. Why?

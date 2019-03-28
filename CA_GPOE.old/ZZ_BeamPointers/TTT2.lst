@@ -1,0 +1,389 @@
+0001   0000                                                        
+0002   0000                                                        ;  processor 6502
+0003   0000                                                        
+0004   0000                                                        ; <EditorTab name="BUILD">
+0005   0000                                                        ;  *** Complie the assembly
+0006   0000                                                        ;  build-command java Blend TicTacToe.asm TTT2.asm
+0007   0000                                                        ;  build-command tasm -fFF -b -65 TTT2.asm TTT2.bin
+0008   0000                                                        
+0009   0000                                                        ;  *** Split the resulting binary into the 3 EPROMs needed by MAME
+0010   0000                                                        ;  build-command java EpromTool -split TTT2.bin 035145.02 035144.02 035143.02
+0011   0000                                                        
+0012   0000                                                        ;  *** Copy results to the MAME directory for running
+0013   0000                                                        ;  build-command jar -cfM c:\mame\roms\asteroid.zip *.02
+0014   0000                                                        
+0015   0000                                                        ; </EditorTab>
+0016   0000                                                        
+0017   0000                                                        
+0018   0000                                                        ; <EditorTab name="DVG">
+0019   0000             DVG_Trigger      .equ     12288            
+0020   0000             DVG_RAM          .equ     16384            
+0021   0000                                                        ; </EditorTab>
+0022   0000                                                        
+0023   0000                                                        ; <EditorTab name="RAM">
+0024   0000             RAM_CellData     .equ     0                ; OLine=24
+0025   0000             RAM_LineData     .equ     9                ; OLine=25
+0026   0000                                                        
+0027   0000             RAM_Temp         .equ     20               ; OLine=27
+0028   0000                                                        ; </EditorTab>
+0029   0000                                                        
+0030   F800                              .org     63488            
+0031   F800                                                        
+0032   F800                                                        ; <EditorTab name="main">
+0033   F800             main:                                      ;  --SubroutineContextBegins--
+0034   F800                                                        
+0035   F800                                                        
+0036   F800                                                        ;  Wait for the DVG to finish
+0037   F800                                                        
+0038   F800 A2 70                        LDX      #16*7            ; OLine=38
+0039   F802             FLOW_A_1_OUTPUT_BEGIN:                           
+TTT2.asm line 0040: Unused data in MS byte of argument. (1)
+0040   F802 BD 00 00                     LDA      SnapShot,X       ; OLine=40
+0041   F805 9D 00 40                     STA      $4000,X          ; OLine=41
+0042   F808 E0 00                        CPX      #0               
+0043   F80A D0 F6                        BNE      FLOW_A_1_OUTPUT_BEGIN 
+0044   F80C                                                        
+0045   F80C             FLOW_A_2_OUTPUT_BEGIN:                           
+0046   F80C AD 02 20                     LDA      $2002            ; OLine=45
+0047   F80F C9 7F                        CMP      #127             
+0048   F811 F0 02                        BEQ      FLOW_A_2_OUTPUT_FALSE 
+0049   F813 B0 F7                        BCS      FLOW_A_2_OUTPUT_BEGIN 
+0050   F815             FLOW_A_2_OUTPUT_FALSE:                           
+0051   F815                                                        
+0052   F815                                                        
+0053   F815                                                        
+0054   F815                                                        
+0055   F815                                                        ;   MakeVectorList()
+0056   F815                                                        ;   DVG_Trigger = A
+0057   F815                                                        
+0058   F815                                                        ;   do {
+0059   F815                                                        ;   } while(true)
+0060   F815                                                        
+0061   F815 60                           RTS                       ;  --SubroutineContextEnds--
+0062   F816                                                        ; </EditorTab>
+0063   F816                                                        
+0064   F816                                                        ; <EditorTab name="MakeVectorList">
+0065   F816                                                        
+0066   F816             RollFlashPattern:                           ;  --SubroutineContextBegins--
+0067   F816                                                        
+0068   F816 AA                           TAX                       ; OLine=64  Hold this
+0069   F817 29 0F                        AND      #15              
+0070   F819 85 14                        STA      RAM_Temp         ; OLine=66  ... to temporary
+0071   F81B 8A                           TXA                       ; OLine=67  Original value back
+0072   F81C                                                        
+0073   F81C 29 F0                        AND      #240             
+0074   F81E 0A                           ASL      A                ; OLine=70  Shift the flash part to the left
+0075   F81F 90 02                        BCC      FLOW_A_3_OUTPUT_FALSE 
+0076   F821 09 10                        ORA      #16              
+0077   F823             FLOW_A_3_OUTPUT_FALSE:                           
+0078   F823                                                        
+0079   F823 25 14                        AND      RAM_Temp         ; OLine=75  Restore the lower two bits
+0080   F825                                                        
+0081   F825 60                           RTS                       ;  --SubroutineContextEnds--
+0082   F826                                                        
+0083   F826             ProcessLine:                               ;  --SubroutineContextBegins--
+0084   F826 29 83                        AND      #131             
+0085   F828 C9 80                        CMP      #128             
+0086   F82A F0 05                        BEQ      FLOW_A_4_OUTPUT_FALSE 
+0087   F82C 90 03                        BCC      FLOW_A_4_OUTPUT_FALSE 
+0088   F82E 20 47 F9                     JSR      DVG_CopySequence ; OLine=82  Draw the win line
+0089   F831             FLOW_A_4_OUTPUT_FALSE:                           
+0090   F831 60                           RTS                       ;  --SubroutineContextEnds--
+0091   F832                                                        
+0092   F832             ProcessCell:                               ;  --SubroutineContextBegins--
+0093   F832 29 83                        AND      #131             
+0094   F834 C9 80                        CMP      #128             
+0095   F836 F0 13                        BEQ      FLOW_A_5_OUTPUT_FALSE 
+0096   F838 90 11                        BCC      FLOW_A_5_OUTPUT_FALSE 
+0097   F83A 20 47 F9                     JSR      DVG_CopySequence ; OLine=89  Center the cell
+0098   F83D C9 81                        CMP      #129             
+0099   F83F F0 05                        BEQ      FLOW_A_6_OUTPUT_TRUE 
+0100   F841 A0 22                        LDY      #DVG_O_Commands-DVG_BoardCommands ; OLine=93
+0101   F843 4C 48 F8                     JMP      FLOW_A_6_OUTPUT_END 
+0102   F846             FLOW_A_6_OUTPUT_TRUE:                           
+0103   F846 A0 20                        LDY      #DVG_X_Commands-DVG_BoardCommands ; OLine=91
+0104   F848             FLOW_A_6_OUTPUT_END:                           
+0105   F848 20 47 F9                     JSR      DVG_CopySequence ; OLine=95  X or O
+0106   F84B             FLOW_A_5_OUTPUT_FALSE:                           
+0107   F84B 60                           RTS                       ;  --SubroutineContextEnds--
+0108   F84C                                                        
+0109   F84C                                                        ;  This routine builds the vector command list from the state of the game
+0110   F84C                                                        ;  cells and lines
+0111   F84C                                                        
+0112   F84C             MakeVectorList:                            ;  --SubroutineContextBegins--
+0113   F84C                                                        
+0114   F84C                                                        ;  In the real hardware, trigger the draw, wait, then do this
+0115   F84C                                                        
+0116   F84C A2 00                        LDX      #0               ; OLine=106  Start of RAM
+0117   F84E                                                        
+0118   F84E                                                        ;  First draw the 4 lines of the board
+0119   F84E                                                        
+0120   F84E A0 00                        LDY      #0               ; OLine=110  DVG_BoardCommands offset
+0121   F850 20 47 F9                     JSR      DVG_CopySequence ; OLine=111
+0122   F853                                                        
+0123   F853                                                        ;  Draw the 9 cells
+0124   F853                                                        
+0125   F853 A5 00                        LDA      RAM_CellData+0   ; OLine=115
+0126   F855 A0 28                        LDY      #DVG_CenterCell0-DVG_BoardCommands ; OLine=116
+0127   F857 20 32 F8                     JSR      ProcessCell      ; OLine=117
+0128   F85A                                                        
+0129   F85A A5 01                        LDA      RAM_CellData+1   ; OLine=119
+0130   F85C A0 2A                        LDY      #DVG_CenterCell1-DVG_BoardCommands ; OLine=120
+0131   F85E 20 32 F8                     JSR      ProcessCell      ; OLine=121
+0132   F861                                                        
+0133   F861 A5 02                        LDA      RAM_CellData+2   ; OLine=123
+0134   F863 A0 2C                        LDY      #DVG_CenterCell2-DVG_BoardCommands ; OLine=124
+0135   F865 20 32 F8                     JSR      ProcessCell      ; OLine=125
+0136   F868                                                        
+0137   F868 A5 03                        LDA      RAM_CellData+3   ; OLine=127
+0138   F86A A0 2E                        LDY      #DVG_CenterCell3-DVG_BoardCommands ; OLine=128
+0139   F86C 20 32 F8                     JSR      ProcessCell      ; OLine=129
+0140   F86F                                                        
+0141   F86F A5 04                        LDA      RAM_CellData+4   ; OLine=131
+0142   F871 A0 30                        LDY      #DVG_CenterCell4-DVG_BoardCommands ; OLine=132
+0143   F873 20 32 F8                     JSR      ProcessCell      ; OLine=133
+0144   F876                                                        
+0145   F876 A5 05                        LDA      RAM_CellData+5   ; OLine=135
+0146   F878 A0 32                        LDY      #DVG_CenterCell5-DVG_BoardCommands ; OLine=136
+0147   F87A 20 32 F8                     JSR      ProcessCell      ; OLine=137
+0148   F87D                                                        
+0149   F87D A5 06                        LDA      RAM_CellData+6   ; OLine=139
+0150   F87F A0 34                        LDY      #DVG_CenterCell6-DVG_BoardCommands ; OLine=140
+0151   F881 20 32 F8                     JSR      ProcessCell      ; OLine=141
+0152   F884                                                        
+0153   F884 A5 07                        LDA      RAM_CellData+7   ; OLine=143
+0154   F886 A0 36                        LDY      #DVG_CenterCell7-DVG_BoardCommands ; OLine=144
+0155   F888 20 32 F8                     JSR      ProcessCell      ; OLine=145
+0156   F88B                                                        
+0157   F88B A5 08                        LDA      RAM_CellData+8   ; OLine=147
+0158   F88D A0 38                        LDY      #DVG_CenterCell8-DVG_BoardCommands ; OLine=148
+0159   F88F 20 32 F8                     JSR      ProcessCell      ; OLine=149
+0160   F892                                                        
+0161   F892                                                        ;  Draw the 8 lines
+0162   F892                                                        
+0163   F892 A5 09                        LDA      RAM_LineData+0   ; OLine=153
+0164   F894 A0 3A                        LDY      #DVG_WinLine0-DVG_BoardCommands ; OLine=154
+0165   F896 20 26 F8                     JSR      ProcessLine      ; OLine=155
+0166   F899                                                        
+0167   F899 A5 0A                        LDA      RAM_LineData+1   ; OLine=157
+0168   F89B A0 3C                        LDY      #DVG_WinLine1-DVG_BoardCommands ; OLine=158
+0169   F89D 20 26 F8                     JSR      ProcessLine      ; OLine=159
+0170   F8A0                                                        
+0171   F8A0 A5 0B                        LDA      RAM_LineData+2   ; OLine=161
+0172   F8A2 A0 3E                        LDY      #DVG_WinLine2-DVG_BoardCommands ; OLine=162
+0173   F8A4 20 26 F8                     JSR      ProcessLine      ; OLine=163
+0174   F8A7                                                        
+0175   F8A7 A5 0C                        LDA      RAM_LineData+3   ; OLine=165
+0176   F8A9 A0 40                        LDY      #DVG_WinLine3-DVG_BoardCommands ; OLine=166
+0177   F8AB 20 26 F8                     JSR      ProcessLine      ; OLine=167
+0178   F8AE                                                        
+0179   F8AE A5 0D                        LDA      RAM_LineData+4   ; OLine=169
+0180   F8B0 A0 42                        LDY      #DVG_WinLine4-DVG_BoardCommands ; OLine=170
+0181   F8B2 20 26 F8                     JSR      ProcessLine      ; OLine=171
+0182   F8B5                                                        
+0183   F8B5 A5 0E                        LDA      RAM_LineData+5   ; OLine=173
+0184   F8B7 A0 44                        LDY      #DVG_WinLine5-DVG_BoardCommands ; OLine=174
+0185   F8B9 20 26 F8                     JSR      ProcessLine      ; OLine=175
+0186   F8BC                                                        
+0187   F8BC A5 0F                        LDA      RAM_LineData+6   ; OLine=177
+0188   F8BE A0 46                        LDY      #DVG_WinLine6-DVG_BoardCommands ; OLine=178
+0189   F8C0 20 26 F8                     JSR      ProcessLine      ; OLine=179
+0190   F8C3                                                        
+0191   F8C3 A5 10                        LDA      RAM_LineData+7   ; OLine=181
+0192   F8C5 A0 48                        LDY      #DVG_WinLine7-DVG_BoardCommands ; OLine=182
+0193   F8C7 20 26 F8                     JSR      ProcessLine      ; OLine=183
+0194   F8CA                                                        
+0195   F8CA                                                        ;  End the vector list
+0196   F8CA                                                        
+0197   F8CA A0 24                        LDY      #DVG_HaltCommand-DVG_BoardCommands ; OLine=187
+0198   F8CC 20 47 F9                     JSR      DVG_CopySequence ; OLine=188
+0199   F8CF                                                        
+0200   F8CF                                                        ;  Roll all the flash-patterns for lines and cells
+0201   F8CF                                                        
+0202   F8CF A5 00                        LDA      RAM_CellData+0   ; OLine=192
+0203   F8D1 20 16 F8                     JSR      RollFlashPattern ; OLine=193
+0204   F8D4 85 00                        STA      RAM_CellData+0   ; OLine=194
+0205   F8D6                                                        
+0206   F8D6 A5 01                        LDA      RAM_CellData+1   ; OLine=196
+0207   F8D8 20 16 F8                     JSR      RollFlashPattern ; OLine=197
+0208   F8DB 85 01                        STA      RAM_CellData+1   ; OLine=198
+0209   F8DD                                                        
+0210   F8DD A5 02                        LDA      RAM_CellData+2   ; OLine=200
+0211   F8DF 20 16 F8                     JSR      RollFlashPattern ; OLine=201
+0212   F8E2 85 02                        STA      RAM_CellData+2   ; OLine=202
+0213   F8E4                                                        
+0214   F8E4 A5 03                        LDA      RAM_CellData+3   ; OLine=204
+0215   F8E6 20 16 F8                     JSR      RollFlashPattern ; OLine=205
+0216   F8E9 85 03                        STA      RAM_CellData+3   ; OLine=206
+0217   F8EB                                                        
+0218   F8EB A5 04                        LDA      RAM_CellData+4   ; OLine=208
+0219   F8ED 20 16 F8                     JSR      RollFlashPattern ; OLine=209
+0220   F8F0 85 04                        STA      RAM_CellData+4   ; OLine=210
+0221   F8F2                                                        
+0222   F8F2 A5 05                        LDA      RAM_CellData+5   ; OLine=212
+0223   F8F4 20 16 F8                     JSR      RollFlashPattern ; OLine=213
+0224   F8F7 85 05                        STA      RAM_CellData+5   ; OLine=214
+0225   F8F9                                                        
+0226   F8F9 A5 06                        LDA      RAM_CellData+6   ; OLine=216
+0227   F8FB 20 16 F8                     JSR      RollFlashPattern ; OLine=217
+0228   F8FE 85 06                        STA      RAM_CellData+6   ; OLine=218
+0229   F900                                                        
+0230   F900 A5 07                        LDA      RAM_CellData+7   ; OLine=220
+0231   F902 20 16 F8                     JSR      RollFlashPattern ; OLine=221
+0232   F905 85 07                        STA      RAM_CellData+7   ; OLine=222
+0233   F907                                                        
+0234   F907 A5 08                        LDA      RAM_CellData+8   ; OLine=224
+0235   F909 20 16 F8                     JSR      RollFlashPattern ; OLine=225
+0236   F90C 85 08                        STA      RAM_CellData+8   ; OLine=226
+0237   F90E                                                        
+0238   F90E A5 09                        LDA      RAM_LineData+0   ; OLine=228
+0239   F910 20 16 F8                     JSR      RollFlashPattern ; OLine=229
+0240   F913 85 09                        STA      RAM_LineData+0   ; OLine=230
+0241   F915                                                        
+0242   F915 A5 0A                        LDA      RAM_LineData+1   ; OLine=232
+0243   F917 20 16 F8                     JSR      RollFlashPattern ; OLine=233
+0244   F91A 85 0A                        STA      RAM_LineData+1   ; OLine=234
+0245   F91C                                                        
+0246   F91C A5 0B                        LDA      RAM_LineData+2   ; OLine=236
+0247   F91E 20 16 F8                     JSR      RollFlashPattern ; OLine=237
+0248   F921 85 0B                        STA      RAM_LineData+2   ; OLine=238
+0249   F923                                                        
+0250   F923 A5 0C                        LDA      RAM_LineData+3   ; OLine=240
+0251   F925 20 16 F8                     JSR      RollFlashPattern ; OLine=241
+0252   F928 85 0C                        STA      RAM_LineData+3   ; OLine=242
+0253   F92A                                                        
+0254   F92A A5 0D                        LDA      RAM_LineData+4   ; OLine=244
+0255   F92C 20 16 F8                     JSR      RollFlashPattern ; OLine=245
+0256   F92F 85 0D                        STA      RAM_LineData+4   ; OLine=246
+0257   F931                                                        
+0258   F931 A5 0E                        LDA      RAM_LineData+5   ; OLine=248
+0259   F933 20 16 F8                     JSR      RollFlashPattern ; OLine=249
+0260   F936 85 0E                        STA      RAM_LineData+5   ; OLine=250
+0261   F938                                                        
+0262   F938 A5 0F                        LDA      RAM_LineData+6   ; OLine=252
+0263   F93A 20 16 F8                     JSR      RollFlashPattern ; OLine=253
+0264   F93D 85 0F                        STA      RAM_LineData+6   ; OLine=254
+0265   F93F                                                        
+0266   F93F A5 10                        LDA      RAM_LineData+7   ; OLine=256
+0267   F941 20 16 F8                     JSR      RollFlashPattern ; OLine=257
+0268   F944 85 10                        STA      RAM_LineData+7   ; OLine=258
+0269   F946                                                        
+0270   F946 60                           RTS                       ;  --SubroutineContextEnds--
+0271   F947                                                        
+0272   F947                                                        ;  This routine copies the WORD commands from the data at Y to
+0273   F947                                                        ;  the DVG at RAM incrementing X along the way.
+0274   F947                                                        
+0275   F947             DVG_CopySequence:                           ;  --SubroutineContextBegins--
+0276   F947                                                        
+0277   F947             FLOW_A_7_OUTPUT_BEGIN:                           
+0278   F947                                                        
+0279   F947                                                        ;  Copy first byte as-is
+0280   F947 B9 61 F9                     LDA      DVG_BoardCommands,Y ; OLine=270
+0281   F94A C8                           INY                       ; OLine=271
+0282   F94B 9D 00 40                     STA      DVG_RAM,X        ; OLine=272
+0283   F94E E8                           INX                       ; OLine=273
+0284   F94F                                                        
+0285   F94F                                                        ;  Get the second byte    
+0286   F94F B9 61 F9                     LDA      DVG_BoardCommands,Y ; OLine=276
+0287   F952 C8                           INY                       ; OLine=277
+0288   F953 C9 00                        CMP      #0               
+0289   F955 D0 02                        BNE      FLOW_A_8_OUTPUT_FALSE 
+0290   F957 CA                           DEX                       ; OLine=279
+0291   F958 60                           RTS                       ; OLine=280  Back over 1st byte
+0292   F959             FLOW_A_8_OUTPUT_FALSE:                           
+0293   F959                                                        
+0294   F959                                                        ;  Store second byte         
+0295   F959 9D 00 40                     STA      DVG_RAM,X        ; OLine=284
+0296   F95C E8                           INX                       ; OLine=285
+0297   F95D                                                        
+0298   F95D 4C 47 F9                     JMP      FLOW_A_7_OUTPUT_BEGIN 
+0299   F960                                                        
+0300   F960 60                           RTS                       ;  --SubroutineContextEnds--
+0301   F961                                                        
+0302   F961                                                        ; </EditorTab>
+0303   F961                                                        
+0304   F961                                                        ; <EditorTab name="DVG Commands">
+0305   F961             DVG_BoardCommands:                           ; OLine=294
+0306   F961 E4 A0 2C 11                  .byte    228,160,44,17    
+0307   F965 0E F1                        .byte    14,241           
+0308   F967 CA F8                        .byte    202,248          
+0309   F969 0B F6                        .byte    11,246           
+0310   F96B 00 60                        .byte    0,96             
+0311   F96D 80 D6                        .byte    128,214          
+0312   F96F DB F6                        .byte    219,246          
+0313   F971 CA F8 DB F2                  .byte    202,248,   219,242,   223,242,  205,242,  205,248,  205,246,  223,246 
+0313   F975 DF F2 CD F2 
+0313   F979 CD F8 CD F6 
+0313   F97D DF F6 
+0314   F97F 00 00                        .byte    0,0              ; OLine=303
+0315   F981                                                        
+0316   F981             DVG_X_Commands:                            ; OLine=305
+0317   F981 00 00                        .byte    0,0              ; OLine=306
+0318   F983                                                        
+0319   F983             DVG_O_Commands:                            ; OLine=308
+0320   F983 00 00                        .byte    0,0              ; OLine=309
+0321   F985                                                        
+0322   F985                                                        
+0323   F985             DVG_HaltCommand:                           ; OLine=312
+0324   F985 00 B0                        .byte    0,176            
+0325   F987 00 00                        .byte    0,0              ; OLine=314
+0326   F989                                                        
+0327   F989                                                        
+0328   F989             DVG_CenterCell0:                           ; OLine=317
+0329   F989 00 00                        .byte    0,0              ; OLine=318
+0330   F98B             DVG_CenterCell1:                           ; OLine=319
+0331   F98B 00 00                        .byte    0,0              ; OLine=320
+0332   F98D             DVG_CenterCell2:                           ; OLine=321
+0333   F98D 00 00                        .byte    0,0              ; OLine=322
+0334   F98F             DVG_CenterCell3:                           ; OLine=323
+0335   F98F 00 00                        .byte    0,0              ; OLine=324
+0336   F991             DVG_CenterCell4:                           ; OLine=325
+0337   F991 00 00                        .byte    0,0              ; OLine=326
+0338   F993             DVG_CenterCell5:                           ; OLine=327
+0339   F993 00 00                        .byte    0,0              ; OLine=328
+0340   F995             DVG_CenterCell6:                           ; OLine=329
+0341   F995 00 00                        .byte    0,0              ; OLine=330
+0342   F997             DVG_CenterCell7:                           ; OLine=331
+0343   F997 00 00                        .byte    0,0              ; OLine=332
+0344   F999             DVG_CenterCell8:                           ; OLine=333
+0345   F999 00 00                        .byte    0,0              ; OLine=334
+0346   F99B                                                        
+0347   F99B                                                        
+0348   F99B             DVG_WinLine0:                              ; OLine=337
+0349   F99B 00 00                        .byte    0,0              ; OLine=338
+0350   F99D             DVG_WinLine1:                              ; OLine=339
+0351   F99D 00 00                        .byte    0,0              ; OLine=340
+0352   F99F             DVG_WinLine2:                              ; OLine=341
+0353   F99F 00 00                        .byte    0,0              ; OLine=342
+0354   F9A1             DVG_WinLine3:                              ; OLine=343
+0355   F9A1 00 00                        .byte    0,0              ; OLine=344
+0356   F9A3             DVG_WinLine4:                              ; OLine=345
+0357   F9A3 00 00                        .byte    0,0              ; OLine=346
+0358   F9A5             DVG_WinLine5:                              ; OLine=347
+0359   F9A5 00 00                        .byte    0,0              ; OLine=348
+0360   F9A7             DVG_WinLine6:                              ; OLine=349
+0361   F9A7 00 00                        .byte    0,0              ; OLine=350
+0362   F9A9             DVG_WinLine7:                              ; OLine=351
+0363   F9A9 00 00                        .byte    0,0              ; OLine=352
+0364   F9AB                                                        
+0365   F9AB                                                        
+0366   F9AB                                                        ; </EditorTab>
+0367   F9AB                                                        
+0368   F9AB                                                        ; <EditorTab name="Interrupts">
+0369   F9AB                                                        
+0370   F9AB             NMIHandler:                                ; OLine=359
+0371   F9AB 40                           RTI                       ; OLine=360
+0372   F9AC                                                        
+0373   F9AC             IRQHandler:                                ; OLine=362
+0374   F9AC 40                           RTI                       ; OLine=363
+0375   F9AD                                                        
+0376   F9AD                                                        ; </EditorTab>
+0377   F9AD                                                        
+0378   F9AD                                                        ; <EditorTab name="Vectors">
+0379   F9AD                                                        
+0380   FFFA                              .org     65530            
+0381   FFFA AB F9                        .WORD    NMIHandler       ; OLine=370  NMI vector (not used)
+0382   FFFC 00 F8                        .WORD    main             ; OLine=371  Reset vector (start of program)
+0383   FFFE AC F9                        .WORD    IRQHandler       ; OLine=372  IRQ vector
+0384   10000                                                        
+0385   10000                         

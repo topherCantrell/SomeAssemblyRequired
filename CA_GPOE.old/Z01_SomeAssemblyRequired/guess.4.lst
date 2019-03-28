@@ -1,0 +1,149 @@
+                         .PROCESSOR 6502
+                         
+                         .EQU HW_TextDisplay = 0x2000
+                         .EQU HW_Keyboard = 0xD000
+                         
+                         .EQU RAM_Temp = 0
+                          
+                         0xF800:
+                         main:
+                         
+f800 : 4c 00 f8            JMP main
+                         
+                         ;---------------------
+                         InputDigit:
+f803 : b9 00 20            A = HW_TextDisplay[Y]
+f806 : c9 3f               A to #'?'
+f808 : f0 05               GO(==) ID_Cursor1
+f80a : a9 3f               A = #'?'
+f80c : 4c 11 f8            GOTO ID_Cursor2
+                         ID_Cursor1:
+f80f : a9 20               A = #' '
+                         ID_Cursor2:
+f811 : 99 00 20            HW_TextDisplay[Y] = A
+f814 : ad 00 d0            A = HW_Keyboard
+f817 : 20 74 f8            CALL IsValidHexKey
+f81a : c9 00               A to #0
+f81c : f0 e5               GO(==) InputDigit
+f81e : 99 00 20            HW_TextDisplay[Y] = A
+f821 : 60                  RETURN
+                         
+                         ;---------------------
+                         InputByte:
+f822 : 20 03 f8            CALL InputDigit
+                         
+f825 : 20 93 f8            CALL ASCIItoBinary
+f828 : 0a                  A<<1
+f829 : 0a                  A<<1
+f82a : 0a                  A<<1
+f82b : 0a                  A<<1
+f82c : 85 00               RAM_Temp = A
+                         
+f82e : c8                  ++Y
+f82f : 20 03 f8            CALL InputDigit
+f832 : 20 93 f8            CALL ASCIItoBinary
+f835 : 05 00               A = A | RAM_Temp
+f837 : 60                  RETURN
+                         
+                         ;---------------------
+                         PrintMessage:
+                         
+f838 : bd 46 f8            A = MESSAGES[X]
+f83b : f0 08               GO(ZERO) PM_Out
+f83d : 99 00 20            HW_TextDisplay[Y] = A
+f840 : e8                  ++X
+f841 : c8                  ++Y
+f842 : 4c 38 f8            GOTO PrintMessage
+                         PM_Out:
+f845 : 60                  RETURN
+                         
+                         MESSAGES:
+f846 : 48 65 6c 6c 6f 20 57 6f 72 6c 64 21 00    .BYTE  "Hello World!",0
+                         MESSAGES_2:
+f853 : 48 6f 77 20 61 72 65 20 79 6f 75 3f 00    .BYTE  "How are you?",0
+                         MESSAGES_3:
+f860 : 49 20 61 6d 20 66 69 6e 65 2e 00    .BYTE  "I am fine.",0
+                         
+                         ;---------------------
+                         ClearScreen:
+                         
+f86b : a2 00               X = #0
+                         CS_1:
+f86d : 9d 00 20            HW_TextDisplay[X] = A
+f870 : e8                  ++X
+f871 : d0 fa               GO(!ZERO) CS_1
+f873 : 60                  RETURN
+                         
+                         ;---------------------
+                         IsValidHexKey:
+                         
+f874 : c9 30               A to #'0'
+f876 : 90 14               GO(<) NoGood
+f878 : c9 3a               A to #'9'+1
+f87a : 90 12               GO(<) Good
+                         
+f87c : c9 41               A to #'A'
+f87e : 90 0c               GO(<) NoGood
+f880 : c9 47               A to #'F'+1
+f882 : 90 0a               GO(<) Good
+                         
+f884 : c9 61               A to #'a'
+f886 : 90 04               GO(<) NoGood
+f888 : c9 67               A to #'f'+1
+f88a : 90 03               GO(<) GoodLower
+                         
+                         NoGood:
+f88c : a9 00               A = #0
+                         Good:
+f88e : 60                  RETURN
+                         
+                         GoodLower:
+f88f : 38 e9 20            A = A - #('a'-'A')
+f892 : 60                  RETURN
+                         
+                         ;---------------------
+                         ASCIItoBinary:
+                         
+f893 : c9 41               A to #'A'
+f895 : 90 03               GO(<) ItIsNumeric
+                         
+f897 : 38 e9 07            A = A - #('A'-10+'0')
+                         
+                         ItIsNumeric:
+                         
+f89a : 38 e9 30            A = A -#'0'
+                         
+f89d : 60                  RETURN
+                         
+                         ;---------------------
+                         0xFFFA:                
+fffa : 00 00               .WORD  0x0000        ; NMI vector (not used)
+fffc : 00 f8               .WORD  main          ; Reset vector (start of program)
+fffe : 00 00               .WORD  0x0000        ; IRQ vector
+
+***** Labels *****
+
+F893 ASCIItoBinary
+F86D CS_1
+F86B ClearScreen
+F88E Good
+F88F GoodLower
+F80F ID_Cursor1
+F811 ID_Cursor2
+F822 InputByte
+F803 InputDigit
+F874 IsValidHexKey
+F89A ItIsNumeric
+F846 MESSAGES
+F853 MESSAGES_2
+F860 MESSAGES_3
+F88C NoGood
+F845 PM_Out
+F838 PrintMessage
+F800 main
+
+***** Equates *****
+
+D000 HW_Keyboard
+2000 HW_TextDisplay
+0000 RAM_Temp

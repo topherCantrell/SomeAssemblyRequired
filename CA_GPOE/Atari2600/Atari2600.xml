@@ -1,0 +1,166 @@
+<System name="Atari 2600 Game Console">
+
+  <Hardware name="RAM" address="128" size="128" access="RW">
+     128 bytes of general purpose RAM
+  </Hardware>
+
+  <AddressDecodeGhost address="384" size="128" realDeviceAddress="128"/>
+
+  <Group name="PIA General Purpose I/O">
+    <Hardware name="PortA Data" address="0x280" access="RW" symbol="SWCHA">      
+      <Bit number="7" name="P0 RIGHT">
+        <Setting value="0">Switch pressed</Setting>
+        <Setting value="1">Switch not pressed</Setting>
+      </Bit>
+      <Bit number="6" name="P0 LEFT">
+        <Setting value="0">Switch pressed</Setting>
+        <Setting value="1">Switch not pressed</Setting>
+      </Bit>
+      <Bit number="5" name="P0 DOWN">
+        <Setting value="0">Switch pressed</Setting>
+        <Setting value="1">Switch not pressed</Setting>
+      </Bit>
+      <Bit number="4" name="P0 UP">
+        <Setting value="0">Switch pressed</Setting>
+        <Setting value="1">Switch not pressed</Setting>
+      </Bit>
+      <Bit number="3" name="P1 RIGHT">
+        <Setting value="0">Switch pressed</Setting>
+        <Setting value="1">Switch not pressed</Setting>
+      </Bit>
+      <Bit number="2" name="P1 LEFTT">
+        <Setting value="0">Switch pressed</Setting>
+        <Setting value="1">Switch not pressed</Setting>
+      </Bit>
+      <Bit number="1" name="P1 DOWN">
+        <Setting value="0">Switch pressed</Setting>
+        <Setting value="1">Switch not pressed</Setting>
+      </Bit>
+      <Bit number="0" name="P1 UP">
+        <Setting value="0">Switch pressed</Setting>
+        <Setting value="1">Switch not pressed</Setting>
+      </Bit>
+    </Hardware>
+    <Hardware name="PortA Direction" address="0x281" access="RW" symbol="SWCHACNT">
+      One bit per pin: 1=output, 0=input
+    </Hardware>
+    <Hardware name="PortB Data" address="0x282" access="RW"  symbol="SWCHB">
+      <Bit number="7" name="P1 difficulty">
+        <Setting value="0">Amateur (B)</Setting>
+        <Setting value="1">Pro (A)</Setting>
+      </Bit>
+      <Bit number="6" name="P0 difficulty">
+        <Setting value="0">Amateur (B)</Setting>
+        <Setting value="1">Pro (A)</Setting>
+      </Bit>      
+      <Bit number="5" name="Unused"></Bit>
+      <Bit number="4" name="Unused"></Bit>
+      <Bit number="3" name="Color or B/W">
+        <Setting value="0">Black and white</Setting>
+        <Setting value="1">Color</Setting>
+      </Bit>
+      <Bit number="2" name="Unused"></Bit>
+      <Bit number="1" name="Game Select">
+        <Setting value="0">Switch pressed</Setting>
+        <Setting value="1">Switch not pressed</Setting>
+      </Bit>
+      <Bit number="1" name="Game Reset">
+        <Setting value="0">Switch pressed</Setting>
+        <Setting value="1">Switch not pressed</Setting>
+      </Bit>
+    </Hardware>
+    <Hardware name="PortB Direction" address="0x283" access="RW" symbol="SWCHBCNT">
+      Hardwired to be INPUTs only
+    </Hardware>
+  </Group>
+
+  <Group name="PIA Timer Control">
+    <Hardware name="Timer value" address="0x284" access="R" symbol="INTIM">
+        Current timer value
+      </Hardware>  
+    <Hardware name="1 Clock Interval" address="0x294" access="W" symbol="TIM1T">
+      Set count to number of 1-clocks intervals (838 nsec/interval)
+    </Hardware>
+    <Hardware name="8 Clock Intervals" address="0x295" access="W" symbol="TIM8T">
+      Set count to number of 8-clocks intervals (6.7 usec/interval)
+    </Hardware>
+    <Hardware name="64 Clock Intervals" address="0x296" access="W" symbol="TIM64T">
+      Set count to number of 64-clocks intervals (53.6 usec/interval)
+    </Hardware>
+    <Hardware name="1024 Clock Intervals" address="0x297" access="W" symbol="T1024T">
+      Set count to number of 1024-clocks intervals (858.2 usec/interval)
+    </Hardware>
+  </Group>
+
+  <Group name="TIA Television Interface Adapter">
+
+; TIA WRITE ADDRESSES
+
+VSYNC   .EQU $0000
+VBLANK .EQU $0001
+WSYNC  .EQU $0002
+RSYNC  .EQU $0003
+NUSIZ0 .EQU $0004
+NUSIZ1 .EQU $0005
+COLUP0 .EQU $0006
+COLUP1 .EQU $0007
+COLUPF .EQU $0008
+COLUBK .EQU $0009
+CTRLPF .EQU $000A
+REFP0  .EQU $000B
+REFP1  .EQU $000C
+PF0    .EQU $000D
+PF1    .EQU $000E
+PF2    .EQU $000F
+RESP0  .EQU $0010
+RESP1  .EQU $0011
+RESM0  .EQU $0012
+RESM1  .EQU $0013
+RESBL  .EQU $0014
+AUDC0  .EQU $0015
+AUDC1  .EQU $0016
+AUDF0  .EQU $0017
+AUDF1  .EQU $0018
+AUDV0  .EQU $0019
+AUDV1  .EQU $001A
+GRP0   .EQU $001B
+GRP1   .EQU $001C
+ENAM0  .EQU $001D
+ENAM1  .EQU $001E
+ENABL  .EQU $001F
+HMP0   .EQU $0020
+HMP1   .EQU $0021
+HMM0   .EQU $0022
+HMM1   .EQU $0023
+HMBL   .EQU $0024
+VDELP0 .EQU $0025
+VDELP1 .EQU $0026
+VDELBL .EQU $0027
+RESMP0 .EQU $0028
+RESMP1 .EQU $0029
+HMOVE  .EQU $002A
+HMCLR  .EQU $002B
+CXCLR  .EQU $002C
+;
+; TIA READ ADDRESSES (Ghosting from the $0000 base?)
+CXM0P  .EQU $0030
+CXM1P  .EQU $0031
+CXP0FB .EQU $0032
+CXP1FB .EQU $0033
+CXM0FB .EQU $0034
+CXM1FB .EQU $0035
+CXBLPF .EQU $0036
+CXPPMM .EQU $0037
+INPT0  .EQU $0038
+INPT1  .EQU $0039
+INPT2  .EQU $003A
+INPT3  .EQU $003B
+INPT4  .EQU $003C
+INPT5  .EQU $003D
+
+
+  </Group>
+
+  <Hardware name="ROM" address="0xF000" size="4096"/>    
+
+</System>

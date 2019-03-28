@@ -1,0 +1,52 @@
+                         .PROCESSOR 6502
+                         
+                         main:
+0000 : a9 2e               A = #'.'
+0002 : 20 1c 00            CALL IsValidHexKey
+0005 : a9 30               A = #'0'
+0007 : 20 1c 00            CALL IsValidHexKey
+000a : a9 39               A = #'9'
+000c : 20 1c 00            CALL IsValidHexKey
+000f : a9 41               A = #'A'
+0011 : 20 1c 00            CALL IsValidHexKey
+0014 : a9 61               A = #'a'
+0016 : 20 1c 00            CALL IsValidHexKey
+0019 : 4c 00 00            GOTO main
+                         
+                         ;---------------------
+                         IsValidHexKey:
+                         
+001c : c9 30               A to #'0'
+001e : 90 14               GO(<) NoGood
+0020 : c9 3a               A to #'9'+1
+0022 : 90 12               GO(<) Good
+                         
+0024 : c9 41               A to #'A'
+0026 : 90 0c               GO(<) NoGood
+0028 : c9 47               A to #'F'+1
+002a : 90 0a               GO(<) Good
+                         
+002c : c9 61               A to #'a'
+002e : 90 04               GO(<) NoGood
+0030 : c9 67               A to #'f'+1
+0032 : 90 03               GO(<) GoodLower
+                         
+                         NoGood:
+0034 : a9 00               A = #0
+                         Good:
+0036 : 60                  RETURN
+                         
+                         GoodLower:
+0037 : 38 e9 20            A = A - #('a'-'A')
+003a : 60                  RETURN
+
+***** Labels *****
+
+0036 Good
+0037 GoodLower
+001C IsValidHexKey
+0034 NoGood
+0000 main
+
+***** Equates *****
+

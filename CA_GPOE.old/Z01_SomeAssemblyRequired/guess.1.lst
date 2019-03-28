@@ -1,0 +1,22 @@
+                         .PROCESSOR 6502
+                         
+                         0x0000:
+                           
+0000 : c9 41               A to #'A'
+0002 : 90 06               GO(<) ItIsNumeric
+                         
+0004 : 38 e9 37            A=A-#55
+0007 : 4c 0d 00            GOTO Done
+                         
+                         ItIsNumeric:
+000a : 38 e9 30            A=A-#48
+                         
+                         Done:
+
+***** Labels *****
+
+000D Done
+000A ItIsNumeric
+
+***** Equates *****
+

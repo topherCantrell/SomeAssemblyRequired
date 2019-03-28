@@ -1,0 +1,269 @@
+0001   0000                                                        ;  The 8080 interrupt system is based on RST 0-8 that execute 8-byte boundary addresses
+0002   0000                                                        ;  at the very top of the memory map. In this case, the top of memory is ROM. So we'll
+0003   0000                                                        ;  re-vector these to RAM. RST 1 will jump to 2000 and RST 2 will jump to 2008. 
+0004   0000                                                        
+0005   0000                                                        ;  Interrupts will be disabled at start-up.
+0006   0000                                                        
+0007   0000                                                        ;  The SpaceInvaders hardware will generate RST 1 and RST 2 only.
+0008   0000                                                        
+0009   0000                              .processor Z80              ; OLine=9
+R2.asm line 0009: unrecognized directive.            (.PROCESSOR)
+0010   0000                                                        ;  build-command java preprocessor.Blend RAMLoader.asm R2.asm
+0011   0000                                                        ;  build-command tasm -b -t8580 R2.asm R2.bin
+0012   0000                                                        ;  build-command java EpromTool -pad R2.bin 2048 255 invaders.h
+0013   0000                                                        ;  build-command jar -cf \mame\roms\invaders.zip invaders.h invaders.g invaders.f invaders.e
+0014   0000                                                        
+0015   0000                                                        ; <EditorTab name="Port 1 Map">
+0016   0000                                                        
+0017   0000                                                        ; Port 1
+0018   0000                                                        ;    bit 0 = CREDIT (Normally 1, 0 if deposit)     
+0019   0000                                                        ;    bit 1 = 2P start (1 if pressed)   
+0020   0000                                                        ;    bit 2 = 1P start (1 if pressed)   [RAMLoader DataBit 1]
+0021   0000                                                        ;    bit 3 = Always 1
+0022   0000                                                        ;    bit 4 = 1P shot (1 if pressed)    [RAMLoader CLOCK]
+0023   0000                                                        ;    bit 5 = 1P left (1 if pressed)    [RAMLoader DataBit 0]
+0024   0000                                                        ;    bit 6 = 1P right (1 if pressed)
+0025   0000                                                        ;    bit 7 = Not connected
+0026   0000                                                        
+0027   0000                                                        ; </EditorTab>
+0028   0000                                                        
+0029   0000                                                        ; <EditorTab name="RST0 Startup">
+0030   0000                                                        
+0031   0000                              .org     0                ; OLine=31
+0032   0000                                                        ;  RST 0 (RESET/POWER-ON)
+0033   0000 00                           nop                       ; OLine=33
+0034   0001 00                           nop                       ; OLine=34
+0035   0002 00                           nop                       ; OLine=35
+0036   0003 C3 18 00                     jp       START            ; OLine=36
+0037   0006 00                           nop                       ; OLine=37
+0038   0007 00                           nop                       ; OLine=38
+0039   0008                                                        
+0040   0008                                                        ; </EditorTab>
+0041   0008                                                        
+0042   0008                                                        ; <EditorTab name="RST1">
+0043   0008                                                        
+0044   0008                                                        ;  RST 1
+0045   0008 C3 00 20                     jp       $2000            ; OLine=45
+0046   000B 00                           nop                       ; OLine=46
+0047   000C 00                           nop                       ; OLine=47
+0048   000D 00                           nop                       ; OLine=48
+0049   000E 00                           nop                       ; OLine=49
+0050   000F 00                           nop                       ; OLine=50
+0051   0010                                                        
+0052   0010                                                        ; </EditorTab>
+0053   0010                                                        
+0054   0010                                                        ; <EditorTab name="RST2">
+0055   0010                                                        
+0056   0010                                                        ;  RST 2
+0057   0010 C3 08 20                     jp       $2008            ; OLine=57
+0058   0013 00                           nop                       ; OLine=58
+0059   0014 00                           nop                       ; OLine=59
+0060   0015 00                           nop                       ; OLine=60
+0061   0016 00                           nop                       ; OLine=61
+0062   0017 00                           nop                       ; OLine=62
+0063   0018                                                        
+0064   0018                                                        ; </EditorTab>
+0065   0018                                                        
+0066   0018                                                        ; <EditorTab name="START">
+0067   0018                                                        
+0068   0018                              TMP_ADDRESS .equ   $2010     ; OLine=68
+R2.asm line 0068: unrecognized instruction.          (TMP_ADDRESS)
+0069   0018                              TMP_COUNT .equ   $2012     ; OLine=69
+R2.asm line 0069: unrecognized instruction.          (TMP_COUNT)
+0070   0018                                                        
+0071   0018                                                        ; HELLO_WORLD() {
+0072   0018                                                        
+0073   0018                                                        ;       ld     HL,$2400
+0074   0018                                                        ;       ld     (TMP_ADDRESS),HL
+0075   0018                                                        ;       ld     HL,$C00
+0076   0018                                                        ;       ld     (TMP_COUNT),HL
+0077   0018                                                        
+0078   0018                                                        ;       ld     c,0
+0079   0018                                                        
+0080   0018                                                        ; Loop11:
+0081   0018                                                        
+0082   0018                                                        ;       ld    HL,(TMP_ADDRESS)  ; Get the current address
+0083   0018                                                        ;       ld    (HL),c            ; Store the value there
+0084   0018                                                        ;       inc   c
+0085   0018                                                        ;       inc   HL                ; Next address
+0086   0018                                                        ;       ld    (TMP_ADDRESS),HL  ; Update the current address      
+0087   0018                                                        
+0088   0018                                                        ;       ld    HL,(TMP_COUNT)    ; Get the count
+0089   0018                                                        ;       dec   HL                ; Decrement the count     
+0090   0018                                                        ;       ld    (TMP_COUNT),HL    ; Update the count
+0091   0018                                                        ;       ld    a,h
+0092   0018                                                        ;       cp    $0
+0093   0018                                                        ;       jp    NZ,Loop11          ; Do all bytes
+0094   0018                                                        ;       ld    a,l
+0095   0018                                                        ;       cp    $0
+0096   0018                                                        ;       jp    NZ,Loop11
+0097   0018                                                        
+0098   0018                                                        ; AA:   ld    HL,$2550
+0099   0018                                                        ;       inc   (HL) 
+0100   0018                                                        ;       jp    AA
+0101   0018                                                        
+0102   0018                                                        ; }
+0103   0018                                                        
+0104   0018             START:                                     ;  --SubroutineContextBegins--
+0105   0018                                                        
+0106   0018 F3                           di                        ; OLine=106  Disable interrupts (just in case)  
+0107   0019 D3 06                        out      (6),a            ; OLine=107  Feed the watchdog
+0108   001B                                                        
+0109   001B 3E 00                        ld       a,0              ; OLine=109  Turn off ...
+0110   001D D3 03                        out      (3),a            ; OLine=110  ... all ...
+0111   001F D3 05                        out      (5),a            ; OLine=111  ... sound
+0112   0021 31 00 24                     ld       sp,$2400         ; OLine=112  Stack at the bottom of user-RAM  
+0113   0024                                                        
+0114   0024                                                        ;  Read word (start address)
+0115   0024                              JSR      ReadWord         ; OLine=115
+R2.asm line 0115: unrecognized instruction.          (JSR)
+0116   0024 3E 28                        ld       a,40             ; OLine=116
+0117   0026 D3 03                        out      (3),a            ; OLine=117
+R2.asm line 0118: Label not found: (TMP_ADDRESS)
+R2.asm line 0118: Unused data in MS byte of argument. (2)
+0118   0028 22 00 00                     ld       (TMP_ADDRESS),HL ; OLine=118  Store the address for the fill
+0119   002B 22 54 25                     ld       ($2554),HL       ; OLine=119  Echo to screen
+0120   002E E5                           PUSH     HL               ; OLine=120  Hold address to jump to later
+0121   002F                                                        
+0122   002F                                                        ;  Read word (length)
+0123   002F                              JSR      ReadWord         ; OLine=123
+R2.asm line 0123: unrecognized instruction.          (JSR)
+0124   002F 3E 24                        ld       a,36             ; OLine=124
+0125   0031 D3 03                        out      (3),a            ; OLine=125
+R2.asm line 0126: Label not found: (TMP_COUNT)
+R2.asm line 0126: Unused data in MS byte of argument. (2)
+0126   0033 22 00 00                     ld       (TMP_COUNT),HL   ; OLine=126  Hold number of bytes
+0127   0036 22 56 25                     ld       ($2556),HL       ; OLine=127  Echo to screen
+0128   0039                                                        
+0129   0039             Loop1:                                     ; OLine=129
+0130   0039                                                        
+0131   0039                              JSR      ReadByte         ; OLine=131  Get next byte
+R2.asm line 0131: unrecognized instruction.          (JSR)
+0132   0039 45                           ld       b,l              ; OLine=132  Hold it somewhere besides HL
+R2.asm line 0133: Label not found: (TMP_ADDRESS)
+R2.asm line 0133: Unused data in MS byte of argument. (2)
+0133   003A 2A 00 00                     ld       HL,(TMP_ADDRESS) ; OLine=133  Get the current address
+0134   003D 70                           ld       (HL),b           ; OLine=134  Store the value there
+0135   003E 23                           inc      HL               ; OLine=135  Next address
+R2.asm line 0136: Label not found: (TMP_ADDRESS)
+R2.asm line 0136: Unused data in MS byte of argument. (2)
+0136   003F 22 00 00                     ld       (TMP_ADDRESS),HL ; OLine=136  Update the current address      
+0137   0042                                                        
+R2.asm line 0138: Label not found: (TMP_COUNT)
+R2.asm line 0138: Unused data in MS byte of argument. (2)
+0138   0042 2A 00 00                     ld       HL,(TMP_COUNT)   ; OLine=138  Get the count
+0139   0045 2B                           dec      HL               ; OLine=139  Decrement the count  
+0140   0046 22 56 25                     ld       ($2556),HL       ; OLine=140  Echo to screen   
+R2.asm line 0141: Label not found: (TMP_COUNT)
+R2.asm line 0141: Unused data in MS byte of argument. (2)
+0141   0049 22 00 00                     ld       (TMP_COUNT),HL   ; OLine=141  Update the count
+0142   004C 7C                           ld       a,h              ; OLine=142
+0143   004D FE 00                        cp       $0               ; OLine=143
+0144   004F C2 39 00                     jp       NZ,Loop1         ; OLine=144  Do all bytes
+0145   0052 7D                           ld       a,l              ; OLine=145
+0146   0053 FE 00                        cp       $0               ; OLine=146
+0147   0055 C2 39 00                     jp       NZ,Loop1         ; OLine=147
+0148   0058                                                        
+0149   0058                                                        ;  Execute start
+0150   0058 E1                           POP      HL               ; OLine=150  Get the start address
+0151   0059 3E 28                        ld       a,40             ; OLine=151
+0152   005B D3 03                        out      (3),a            ; OLine=152
+0153   005D D3 06                        out      (6),a            ; OLine=153  Feed the watchdog one last time
+0154   005F E9                           JP       (HL)             ; OLine=154  Jump to address ... no return
+0155   0060                                                        
+0156   0060                              RTS                       ;  --SubroutineContextEnds--
+R2.asm line 0156: unrecognized instruction.          (RTS)
+0157   0060                                                        ; </EditorTab>
+0158   0060                                                        
+0159   0060                                                        
+0160   0060                                                        ; <EditorTab name="ReadByte">
+0161   0060                                                        
+0162   0060             ReadByte:                                  ;  --SubroutineContextBegins--
+0163   0060                                                        
+0164   0060 F5                           push     af               ; OLine=164  We will mangle this
+0165   0061 C5                           push     bc               ; OLine=165  We will mangle this
+0166   0062                                                        
+0167   0062 2E 00                        ld       L,0              ; OLine=167  Accumulated byte
+0168   0064 0E 02                        ld       c,2              ; OLine=168  2 sets of 2 4 bits
+0169   0066                                                        
+0170   0066             rb_1:                                      ; OLine=170
+0171   0066 D3 06                        out      (6),a            ; OLine=171  Feed the watchdog
+0172   0068 DB 01                        in       a,(1)            ; OLine=172  Read the input port   
+0173   006A 32 50 25                     ld       ($2550),a        ; OLine=173  Screen echo of port value
+0174   006D 47                           ld       b,a              ; OLine=174  Hold it
+0175   006E E6 10                        and      $10              ; OLine=175  Get the clock value
+0176   0070 CA 66 00                     jp       Z,rb_1           ; OLine=176  Clock pin still 0 ... keep waiting
+0177   0073                                                        
+0178   0073 7D                           ld       a,l              ; OLine=178  Shift accumulation ...
+0179   0074 17                           rla                       ; OLine=179  ... left 2 bits ...
+0180   0075 17                           rla                       ; OLine=180  ... to make room for ...
+0181   0076 6F                           ld       l,a              ; OLine=181  ... reading next 2 bits
+0182   0077                                                        
+0183   0077 78                           ld       a,b              ; OLine=183  The original value back
+0184   0078 0F                           rrca                      ; OLine=184  Move D2 of input (1P start = D1) ...
+0185   0079 0F                           rrca                      ; OLine=185  .... into ...
+0186   007A 0F                           rrca                      ; OLine=186  ... CF flag
+0187   007B D2 80 00                     jp       NC,rb_A          ; OLine=187  If the CF is 0, skip adding 2
+0188   007E 2C                           inc      l                ; OLine=188  CF must be 1 ...
+0189   007F 2C                           inc      l                ; OLine=189  ... set bit 1
+0190   0080             rb_A:                                      ; OLine=190
+0191   0080 0F                           rrca                      ; OLine=191  Move D5 of input (1P left = D0) ...
+0192   0081 0F                           rrca                      ; OLine=192  ... into ...
+0193   0082 0F                           rrca                      ; OLine=193  ... CF flag
+0194   0083 D2 87 00                     jp       NC,rb_2          ; OLine=194  If the CF is 0, skip adding 1
+0195   0086 2C                           inc      l                ; OLine=195  CF must be 1 ... set bit 0
+0196   0087             rb_2:                                      ; OLine=196
+0197   0087 D3 06                        out      (6),a            ; OLine=197  Feed the watchdog
+0198   0089 DB 01                        in       a,(1)            ; OLine=198  Read the input port
+0199   008B 32 50 25                     ld       ($2550),a        ; OLine=199  Screen echo of port value
+0200   008E 47                           ld       b,a              ; OLine=200  Hold it
+0201   008F E6 10                        and      $10              ; OLine=201  Get the clock value
+0202   0091 C2 87 00                     jp       nz,rb_2          ; OLine=202  Clock pin still 1 ... keep waiting
+0203   0094                                                        
+0204   0094 7D                           ld       a,l              ; OLine=204  Shift accumulation ...
+0205   0095 17                           rla                       ; OLine=205  ... left 2 bits ...
+0206   0096 17                           rla                       ; OLine=206  ... to make room for ...
+0207   0097 6F                           ld       l,a              ; OLine=207  ... reading next 2 bits
+0208   0098                                                        
+0209   0098 78                           ld       a,b              ; OLine=209  The original value back
+0210   0099 0F                           rrca                      ; OLine=210  Move D2 of input (1P start = D1) ...
+0211   009A 0F                           rrca                      ; OLine=211  .... into ...
+0212   009B 0F                           rrca                      ; OLine=212  ... CF flag
+0213   009C D2 A1 00                     jp       NC,rb_A2         ; OLine=213  If the CF is 0, skip adding 2
+0214   009F 2C                           inc      l                ; OLine=214  CF must be 1 ...
+0215   00A0 2C                           inc      l                ; OLine=215  ... set bit 1
+0216   00A1             rb_A2:                                     ; OLine=216
+0217   00A1 0F                           rrca                      ; OLine=217  Move D5 of input (1P left = D0) ...
+0218   00A2 0F                           rrca                      ; OLine=218  ... into ...
+0219   00A3 0F                           rrca                      ; OLine=219  ... CF flag
+0220   00A4 D2 A8 00                     jp       NC,rb_B2         ; OLine=220  If the CF is 0, skip adding 1
+0221   00A7 2C                           inc      l                ; OLine=221  CF must be 1 ... set bit 0
+0222   00A8             rb_B2:                                     ; OLine=222
+0223   00A8                                                        
+0224   00A8 0D                           dec      c                ; OLine=224  Done both sets of 4 bits?
+0225   00A9 C2 66 00                     jp       nz,rb_1          ; OLine=225  No ... back for more
+0226   00AC                                                        
+0227   00AC 7D                           ld       a,l              ; OLine=227  Screen echo ...
+0228   00AD 32 51 25                     ld       ($2551),a        ; OLine=228  ... the read byte
+0229   00B0                                                        
+0230   00B0 C1                           POP      bc               ; OLine=230  Restore ...
+0231   00B1 F1                           POP      af               ; OLine=231  ... these
+0232   00B2                                                        
+0233   00B2                              RTS                       ;  --SubroutineContextEnds--
+R2.asm line 0233: unrecognized instruction.          (RTS)
+0234   00B2                                                        
+0235   00B2             ReadWord:                                  ;  --SubroutineContextBegins--
+0236   00B2                                                        
+0237   00B2                              JSR      ReadByte         ; OLine=237  Get MSB to L
+R2.asm line 0237: unrecognized instruction.          (JSR)
+0238   00B2 65                           ld       h,l              ; OLine=238  Move it up to H
+0239   00B3                              JSR      ReadByte         ; OLine=239  Get LSB to L
+R2.asm line 0239: unrecognized instruction.          (JSR)
+0240   00B3                                                        
+0241   00B3                              RTS                       ;  --SubroutineContextEnds--
+R2.asm line 0241: unrecognized instruction.          (RTS)
+0242   00B3                                                        
+0243   00B3                                                        ; </EditorTab>
+0244   00B3                                                        
+0245   00B3                              .end                      ; OLine=245
+tasm: Number of errors = 23

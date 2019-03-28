@@ -1,0 +1,38 @@
+DASM80 is an MS DOS 2.0 or greater Intel hex file disassembler.  The
+syntax for invocation is:
+
+drive:DASM80 <hexfile> <sourcefile>
+
+where drive: is the drive where the dissasembler is stored, <hexfile>
+is the name of an existing object file in the Intel hex format, and
+<sourcefile> is the name of the file to which the dissassembled code is
+to be written.
+
+Upon completion, <sourcefile> will contain the mnemonics associated with
+the opcodes found in <hexfile>.  If an undefined opcode is encountered,
+it is assigned the mnemonic "?".  An "ORG" statement is generated at the
+address of the first non-NOP instruction.  If subsequent  NOP's (opcode=00H)
+are encountered, the dissasembler will generate an "ORG" statement to the
+address of the next non-NOP instruction.
+
+
+The following is a brief description of each file on this disk:
+
+DASM80.DOC is this file.
+
+MAKEFILE is a definitions file for use with the MASM MAKE utility.
+
+DASM80.ASM is the source file for the main module of DASM80.
+
+MNEM80.ASM is the source file for the mnemonic lookup tables for DASM80.
+
+DASM80.EXE is the executable program file.
+
+ALL80.SRC is a source file that contains all source mnemonics for
+8080/8085 microprocessors.
+
+TEST80.BAT is a BATCH file that invokes DASM80.EXE to produce TEST80.SRC
+from ALL80.HEX.
+
+TESTZ80.SRC is a source file that was created by dissassembling ALLZ80.HEX.
+

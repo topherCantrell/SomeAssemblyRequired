@@ -1,0 +1,488 @@
+
+<ProcessorDescription name="6502">
+  
+    The 6502 treats carry-true if Carry Flag is ONE.
+    The 6502 treats borrow-true if Carry Flag is ZERO.
+        
+    All stack operations use an MSB of "01" for memory addressing.
+    
+
+ 
+    <Registers>
+      <Register name="Flags" width="8" description="Processor Status">
+        <Bit pos="7" flag="Negative"/>
+        <Bit pos="6" flag="Overflow"/>
+        <Bit pos="5" flag="NOT USED"/>
+        <Bit pos="4" flag="Break"/>
+        <Bit pos="3" flag="Decimal"/>
+        <Bit pos="2" flag="Interrupt"/>
+        <Bit pos="1" flag="Zero"/>
+        <Bit pos="0" flag="Carry"/>
+      </Register>
+      <Register name="A" width="8" description="Accumulator"/>
+      <Register name="X" width="8" description="Index X"/>
+      <Register name="Y" width="8" description="Index Y"/>
+      <Register name="S" width="8" description="Stack Pointer"/>
+      <Register name="PC" width="16" description="program counter"/>
+    </Registers>
+
+    <Vectors>
+      <Vector address="FFFA" description="NMI"/>
+      <Vector address="FFFC" description="Reset"/>
+      <Vector address="FFFE" description="IRQ/BRK"/>
+    </Vectors>
+                                                                                                    <!--  NO-BDIZC  -->
+    <Instruction mnemonic="ADC_#@BYTE@"      mode="Immediate"     opcode="69" bytes="2" cycles="2" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="ADC_@LABEL@"      mode="ZeroPage"      opcode="65" bytes="2" cycles="3" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="ADC_@LABEL@,X"    mode="ZeroPage,X"    opcode="75" bytes="2" cycles="4" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="ADC_>@LABEL@"     mode="ZeroPage"      opcode="65" bytes="2" cycles="3" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="ADC_>@LABEL@,X"   mode="ZeroPage,X"    opcode="75" bytes="2" cycles="4" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="ADC_@LABEL@"      mode="Absolute"      opcode="6D" bytes="3" cycles="4" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="ADC_@LABEL@,X"    mode="Absolute,X"    opcode="7D" bytes="3" cycles="4" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="ADC_@LABEL@,Y"    mode="Absolute,Y"    opcode="79" bytes="3" cycles="4" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="ADC_(@LABEL@,X)"  mode="Indirect,X"    opcode="61" bytes="2" cycles="6" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="ADC_(@LABEL@),Y"  mode="Indirect,Y"    opcode="71" bytes="2" cycles="5" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    
+    <Instruction mnemonic="AND_#@BYTE@"      mode="Immediate"     opcode="29" bytes="2" cycles="2" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    <Instruction mnemonic="AND_@LABEL@"      mode="ZeroPage"      opcode="25" bytes="2" cycles="3" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    <Instruction mnemonic="AND_@LABEL@,X"    mode="ZeroPage,X"    opcode="35" bytes="2" cycles="4" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    <Instruction mnemonic="AND_>@LABEL@"     mode="ZeroPage"      opcode="25" bytes="2" cycles="3" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    <Instruction mnemonic="AND_>@LABEL@,X"   mode="ZeroPage,X"    opcode="35" bytes="2" cycles="4" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    <Instruction mnemonic="AND_@LABEL@"      mode="Absolute"      opcode="2D" bytes="3" cycles="4" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    <Instruction mnemonic="AND_@LABEL@,X"    mode="Absolute,X"    opcode="3D" bytes="3" cycles="4" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    <Instruction mnemonic="AND_@LABEL@,Y"    mode="Absolute,Y"    opcode="39" bytes="3" cycles="4" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    <Instruction mnemonic="AND_(@LABEL@,X)"  mode="Indirect,X"    opcode="21" bytes="2" cycles="6" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    <Instruction mnemonic="AND_(@LABEL@),Y"  mode="Indirect,Y"    opcode="31" bytes="2" cycles="5" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    
+    <Instruction mnemonic="ASLA"             mode="Implied"       opcode="0A" bytes="1" cycles="2" flags="*-.---**" help="Shift Left (Memory or Accumulator)"/>
+    <Instruction mnemonic="ASL_@LABEL@"      mode="ZeroPage"      opcode="06" bytes="2" cycles="5" flags="*-.---**" help="Shift Left (Memory or Accumulator)"/>
+    <Instruction mnemonic="ASL_@LABEL@,X"    mode="ZeroPage,X"    opcode="16" bytes="2" cycles="6" flags="*-.---**" help="Shift Left (Memory or Accumulator)"/>
+    <Instruction mnemonic="ASL_>@LABEL@"     mode="ZeroPage"      opcode="06" bytes="2" cycles="5" flags="*-.---**" help="Shift Left (Memory or Accumulator)"/>
+    <Instruction mnemonic="ASL_>@LABEL@,X"   mode="ZeroPage,X"    opcode="16" bytes="2" cycles="6" flags="*-.---**" help="Shift Left (Memory or Accumulator)"/>
+    <Instruction mnemonic="ASL_@LABEL@"      mode="Absolute"      opcode="0E" bytes="3" cycles="6" flags="*-.---**" help="Shift Left (Memory or Accumulator)"/>
+    <Instruction mnemonic="ASL_@LABEL@,X"    mode="Absolute,X"    opcode="1E" bytes="3" cycles="7" flags="*-.---**" help="Shift Left (Memory or Accumulator)"/>
+    
+    <Instruction mnemonic="BIT_@LABEL@"      mode="ZeroPage"      opcode="24" bytes="2" cycles="3" flags="**.---*-" help="Bit test"/>
+    <Instruction mnemonic="BIT_>@LABEL@"     mode="ZeroPage"      opcode="24" bytes="2" cycles="3" flags="**.---*-" help="Bit test"/>
+    <Instruction mnemonic="BIT_@LABEL@"      mode="Absolute"      opcode="2C" bytes="3" cycles="4" flags="**.---*-" help="Bit test"/>
+
+    <Instruction mnemonic="BRK"              mode="Implied"       opcode="00" bytes="1" cycles="7" flags="--.+-1-" help="Break command"/>
+
+    <Instruction mnemonic="BCC_@LABEL@"      mode="Relative"      opcode="90" bytes="2" cycles="2" flags="--.-----" help="Branch if Carry Flag Cleared"/>
+    <Instruction mnemonic="BCS_@LABEL@"      mode="Relative"      opcode="B0" bytes="2" cycles="2" flags="--.-----" help="Branch if Carry Flag is Set"/>
+    <Instruction mnemonic="BEQ_@LABEL@"      mode="Relative"      opcode="F0" bytes="2" cycles="2" flags="--.-----" help="Branch if result equal to zero."/>    
+    <Instruction mnemonic="BMI_@LABEL@"      mode="Relative"      opcode="30" bytes="2" cycles="2" flags="--.-----" help="Branch if result is minus"/>
+    <Instruction mnemonic="BNE_@LABEL@"      mode="Relative"      opcode="D0" bytes="2" cycles="2" flags="--.-----" help="Branch if result is ont equal to zero"/>
+    <Instruction mnemonic="BPL_@LABEL@"      mode="Relative"      opcode="10" bytes="2" cycles="2" flags="--.-----" help="Branch if result is plus"/>
+    <Instruction mnemonic="BVC_@LABEL@"      mode="Relative"      opcode="50" bytes="2" cycles="2" flags="--.-----" help="Branch if oveflow flag (V) is cleared"/>
+    <Instruction mnemonic="BVS_@LABEL@"      mode="Relative"      opcode="70" bytes="2" cycles="2" flags="--.-----" help="Branch if overflow flag (V) is set"/>
+
+    <Instruction mnemonic="CLC"              mode="Implied"       opcode="18" bytes="1" cycles="2" flags="--.----0" help="Clear carry flag"/>
+    <Instruction mnemonic="CLD"              mode="Implied"       opcode="D8" bytes="1" cycles="2" flags="--.-0---" help="Clear decimal mode flag"/>
+    <Instruction mnemonic="CLI"              mode="Implied"       opcode="58" bytes="1" cycles="2" flags="--.--0--" help="Clear interrupt disable flag"/>
+    <Instruction mnemonic="CLV"              mode="Implied"       opcode="B8" bytes="1" cycles="2" flags="-0.-----" help="Clear overflow flag"/>
+    
+    <Instruction mnemonic="CMP_#@BYTE@"      mode="Immediate"     opcode="C9" bytes="2" cycles="3" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="CMP_@LABEL@"      mode="ZeroPage"      opcode="C5" bytes="2" cycles="3" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="CMP_@LABEL@,X"    mode="ZeroPage,X"    opcode="D5" bytes="2" cycles="4" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="CMP_>@LABEL@"     mode="ZeroPage"      opcode="C5" bytes="2" cycles="3" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="CMP_>@LABEL@,X"   mode="ZeroPage,X"    opcode="D5" bytes="2" cycles="4" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="CMP_@LABEL@"      mode="Absolute"      opcode="CD" bytes="3" cycles="4" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="CMP_@LABEL@,X"    mode="Absolute,X"    opcode="DD" bytes="3" cycles="4" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="CMP_@LABEL@,Y"    mode="Absolute,Y"    opcode="D9" bytes="3" cycles="4" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="CMP_(@LABEL@,X)"  mode="Indirect,X"    opcode="C1" bytes="2" cycles="6" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="CMP_(@LABEL@),Y"  mode="Indirect,Y"    opcode="D1" bytes="2" cycles="5" flags="*-.---**" help="Compare accumulator with memory"/>
+
+    <Instruction mnemonic="CPX_#@BYTE@"      mode="Immediate"     opcode="E0" bytes="2" cycles="2" flags="*-.---**" help="Compare the X register with memory"/>
+    <Instruction mnemonic="CPX_@LABEL@"      mode="ZeroPage"      opcode="E4" bytes="2" cycles="3" flags="*-.---**" help="Compare the X register with memory"/>
+    <Instruction mnemonic="CPX_>@LABEL@"     mode="ZeroPage"      opcode="E4" bytes="2" cycles="3" flags="*-.---**" help="Compare the X register with memory"/>
+    <Instruction mnemonic="CPX_@LABEL@"      mode="Absolute"      opcode="EC" bytes="3" cycles="4" flags="*-.---**" help="Compare the X register with memory"/>
+
+    <Instruction mnemonic="CPY_#@BYTE@"      mode="Immediate"     opcode="C0" bytes="2" cycles="2" flags="*-.---**" help="Compare Y register with memory"/>
+    <Instruction mnemonic="CPY_@LABEL@"      mode="ZeroPage"      opcode="C4" bytes="2" cycles="3" flags="*-.---**" help="Compare Y register with memory"/>
+    <Instruction mnemonic="CPY_>@LABEL@"     mode="ZeroPage"      opcode="C4" bytes="2" cycles="3" flags="*-.---**" help="Compare Y register with memory"/>
+    <Instruction mnemonic="CPY_@LABEL@"      mode="Absolute"      opcode="CC" bytes="3" cycles="4" flags="*-.---**" help="Compare Y register with memory"/>
+
+    <Instruction mnemonic="DEC_@LABEL@"      mode="ZeroPage"      opcode="C6" bytes="2" cycles="5" flags="*-.---*-" help="Decrement memory contents"/>
+    <Instruction mnemonic="DEC_@LABEL@,X"    mode="ZeroPage,X"    opcode="D6" bytes="2" cycles="6" flags="*-.---*-" help="Decrement memory contents"/>
+    <Instruction mnemonic="DEC_>@LABEL@"     mode="ZeroPage"      opcode="C6" bytes="2" cycles="5" flags="*-.---*-" help="Decrement memory contents"/>
+    <Instruction mnemonic="DEC_>@LABEL@,X"   mode="ZeroPage,X"    opcode="D6" bytes="2" cycles="6" flags="*-.---*-" help="Decrement memory contents"/>
+    <Instruction mnemonic="DEC_@LABEL@"      mode="Absolute"      opcode="CE" bytes="3" cycles="6" flags="*-.---*-" help="Decrement memory contents"/>
+    <Instruction mnemonic="DEC_@LABEL@,Y"    mode="Absolute,X"    opcode="DE" bytes="3" cycles="7" flags="*-.---*-" help="Decrement memory contents"/>
+    
+    <Instruction mnemonic="DEX"              mode="Implied"       opcode="CA" bytes="1" cycles="2" flags="*-.---*-" help="Decrement the X register"/>
+    <Instruction mnemonic="DEY"              mode="Implied"       opcode="88" bytes="1" cycles="2" flags="*-.---*-" help="Decrement the Y register"/>
+    
+    <Instruction mnemonic="EOR_#@BYTE@"      mode="Immediate"     opcode="49" bytes="2" cycles="2" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="EOR_@LABEL@"      mode="ZeroPage"      opcode="45" bytes="2" cycles="3" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="EOR_@LABEL@,X"    mode="ZeroPage,X"    opcode="55" bytes="2" cycles="4" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="EOR_>@LABEL@"     mode="ZeroPage"      opcode="45" bytes="2" cycles="3" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="EOR_>@LABEL@,X"   mode="ZeroPage,X"    opcode="55" bytes="2" cycles="4" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="EOR_@LABEL@"      mode="Absolute"      opcode="4D" bytes="3" cycles="4" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="EOR_@LABEL@,X"    mode="Absolute,X"    opcode="5D" bytes="3" cycles="4" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="EOR_@LABEL@,Y"    mode="Absolute,Y"    opcode="59" bytes="3" cycles="4" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="EOR_(@LABEL@,X)"  mode="Indirect,X"    opcode="41" bytes="2" cycles="6" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="EOR_(@LABEL@),Y"  mode="Indirect,Y"    opcode="51" bytes="2" cycles="5" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    
+    <Instruction mnemonic="INC_@LABEL@"      mode="ZeroPage"      opcode="E6" bytes="2" cycles="5" flags="*-.---*-" help="Increment memory data"/>
+    <Instruction mnemonic="INC_@LABEL@,X"    mode="ZeroPage,X"    opcode="F6" bytes="2" cycles="6" flags="*-.---*-" help="Increment memory data"/>
+    <Instruction mnemonic="INC_>@LABEL@"     mode="ZeroPage"      opcode="E6" bytes="2" cycles="5" flags="*-.---*-" help="Increment memory data"/>
+    <Instruction mnemonic="INC_>@LABEL@,X"   mode="ZeroPage,X"    opcode="F6" bytes="2" cycles="6" flags="*-.---*-" help="Increment memory data"/>
+    <Instruction mnemonic="INC_@LABEL@"      mode="Absolute"      opcode="EE" bytes="3" cycles="6" flags="*-.---*-" help="Increment memory data"/>
+    <Instruction mnemonic="INC_@LABEL@,Y"    mode="Absolute,X"    opcode="FE" bytes="3" cycles="7" flags="*-.---*-" help="Increment memory data"/>
+
+    <Instruction mnemonic="INX"              mode="Implied"       opcode="E8" bytes="1" cycles="2" flags="*-.---*-" help="Incrememtn the X register"/>
+    <Instruction mnemonic="INY"              mode="Implied"       opcode="C8" bytes="1" cycles="2" flags="*-.---*-" help="Increment the Y register"/>
+    
+    <Instruction mnemonic="JMP_@LABEL@"      mode="Absolute"      opcode="4C" bytes="3" cycles="3" flags="--.-----" help="Unconditional Jump"/>
+    <Instruction mnemonic="JMP_(@LABEL@)"    mode="Indirect"      opcode="5C" bytes="3" cycles="5" flags="--.-----" help="Unconditional Jump"/>
+    
+    <Instruction mnemonic="JSR_@LABEL@"      mode="Absolute"      opcode="20" bytes="3" cycles="6" flags="--.-----" help="Jump to subroutine"/>
+    
+    <Instruction mnemonic="LDA_#@BYTE@"      mode="Immediate"     opcode="A9" bytes="2" cycles="2" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="LDA_@LABEL@"      mode="ZeroPage"      opcode="A5" bytes="2" cycles="3" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="LDA_@LABEL@,X"    mode="ZeroPage,X"    opcode="B5" bytes="2" cycles="4" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="LDA_>@LABEL@"     mode="ZeroPage"      opcode="A5" bytes="2" cycles="3" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="LDA_>@LABEL@,X"   mode="ZeroPage,X"    opcode="B5" bytes="2" cycles="4" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="LDA_@LABEL@"      mode="Absolute"      opcode="AD" bytes="3" cycles="4" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="LDA_@LABEL@,X"    mode="Absolute,X"    opcode="BD" bytes="3" cycles="4" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="LDA_@LABEL@,Y"    mode="Absolute,Y"    opcode="B9" bytes="3" cycles="4" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="LDA_(@LABEL@,X)"  mode="Indirect,X"    opcode="A1" bytes="2" cycles="6" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="LDA_(@LABEL@),Y"  mode="Indirect,Y"    opcode="B1" bytes="2" cycles="5" flags="*-.---*-" help="Load accumulator from memory"/>
+    
+    <Instruction mnemonic="LDX_#@BYTE@"      mode="Immediate"     opcode="A2" bytes="2" cycles="2" flags="*-.---*-" help="Load X from memory"/>
+    <Instruction mnemonic="LDX_@LABEL@"      mode="ZeroPage"      opcode="A6" bytes="2" cycles="3" flags="*-.---*-" help="Load X from memory"/>
+    <Instruction mnemonic="LDX_@LABEL@,Y"    mode="ZeroPage,Y"    opcode="B6" bytes="2" cycles="4" flags="*-.---*-" help="Load X from memory"/>
+    <Instruction mnemonic="LDX_>@LABEL@"     mode="ZeroPage"      opcode="A6" bytes="2" cycles="3" flags="*-.---*-" help="Load X from memory"/>
+    <Instruction mnemonic="LDX_>@LABEL@,Y"   mode="ZeroPage,Y"    opcode="B6" bytes="2" cycles="4" flags="*-.---*-" help="Load X from memory"/>
+    <Instruction mnemonic="LDX_@LABEL@"      mode="Absolute"      opcode="AE" bytes="3" cycles="4" flags="*-.---*-" help="Load X from memory"/>
+    <Instruction mnemonic="LDX_@LABEL@,Y"    mode="Absolute,Y"    opcode="BE" bytes="3" cycles="4" flags="*-.---*-" help="Load X from memory"/>
+    
+    <Instruction mnemonic="LDY_#@BYTE@"      mode="Immediate"     opcode="A0" bytes="2" cycles="2" flags="*-.---*-" help="Load Y from memory"/>
+    <Instruction mnemonic="LDY_@LABEL@"      mode="ZeroPage"      opcode="A4" bytes="2" cycles="3" flags="*-.---*-" help="Load Y from memory"/>
+    <Instruction mnemonic="LDY_@LABEL@,X"    mode="ZeroPage,X"    opcode="B4" bytes="2" cycles="4" flags="*-.---*-" help="Load Y from memory"/>
+    <Instruction mnemonic="LDY_>@LABEL@"     mode="ZeroPage"      opcode="A4" bytes="2" cycles="3" flags="*-.---*-" help="Load Y from memory"/>
+    <Instruction mnemonic="LDY_>@LABEL@,X"   mode="ZeroPage,X"    opcode="B4" bytes="2" cycles="4" flags="*-.---*-" help="Load Y from memory"/>
+    <Instruction mnemonic="LDY_@LABEL@"      mode="Absolute"      opcode="AC" bytes="3" cycles="4" flags="*-.---*-" help="Load Y from memory"/>
+    <Instruction mnemonic="LDY_@LABEL@,X"    mode="Absolute,X"    opcode="BC" bytes="3" cycles="4" flags="*-.---*-" help="Load Y from memory"/>
+    
+    <Instruction mnemonic="LSRA"             mode="Implied"       opcode="4A" bytes="1" cycles="2" flags="0-.---**" help="Shift right (memory or accumulator)"/>
+    <Instruction mnemonic="LSR_@LABEL@"      mode="ZeroPage"      opcode="46" bytes="2" cycles="5" flags="0-.---**" help="Shift right (memory or accumulator)"/>
+    <Instruction mnemonic="LSR_@LABEL@,X"    mode="ZeroPage,X"    opcode="56" bytes="2" cycles="6" flags="0-.---**" help="Shift right (memory or accumulator)"/>
+    <Instruction mnemonic="LSR_>@LABEL@"     mode="ZeroPage"      opcode="46" bytes="2" cycles="5" flags="0-.---**" help="Shift right (memory or accumulator)"/>
+    <Instruction mnemonic="LSR_>@LABEL@,X"   mode="ZeroPage,X"    opcode="56" bytes="2" cycles="6" flags="0-.---**" help="Shift right (memory or accumulator)"/>
+    <Instruction mnemonic="LSR_@LABEL@"      mode="Absolute"      opcode="4E" bytes="3" cycles="6" flags="0-.---**" help="Shift right (memory or accumulator)"/>
+    <Instruction mnemonic="LSR_@LABEL@,X"    mode="Absolute,X"    opcode="5E" bytes="3" cycles="7" flags="0-.---**" help="Shift right (memory or accumulator)"/>
+    
+    <Instruction mnemonic="NOP"              mode="Implied"       opcode="EA" bytes="1" cycles="2" flags="--.-----" help="No Operation"/>
+
+    <Instruction mnemonic="ORA_#@BYTE@"      mode="Immediate"     opcode="09" bytes="2" cycles="2" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="ORA_@LABEL@"      mode="ZeroPage"      opcode="05" bytes="2" cycles="3" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="ORA_@LABEL@,X"    mode="ZeroPage,X"    opcode="15" bytes="2" cycles="4" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="ORA_>@LABEL@"     mode="ZeroPage"      opcode="05" bytes="2" cycles="3" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="ORA_>@LABEL@,X"   mode="ZeroPage,X"    opcode="15" bytes="2" cycles="4" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="ORA_@LABEL@"      mode="Absolute"      opcode="0D" bytes="3" cycles="4" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="ORA_@LABEL@,X"    mode="Absolute,X"    opcode="1D" bytes="3" cycles="4" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="ORA_@LABEL@,Y"    mode="Absolute,Y"    opcode="19" bytes="3" cycles="4" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="ORA_(@LABEL@,X)"  mode="Indirect,X"    opcode="01" bytes="2" cycles="6" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="ORA_(@LABEL@),Y"  mode="Indirect,Y"    opcode="11" bytes="2" cycles="5" flags="*-.---*-" help="OR memory with accumulator"/>
+    
+    <Instruction mnemonic="PHA"              mode="Implied"       opcode="48" bytes="1" cycles="3" flags="--.-----" help="Push accumulator on stack"/>
+    <Instruction mnemonic="PHP"              mode="Implied"       opcode="08" bytes="1" cycles="3" flags="--.-----" help="Push processor status register on stack"/>
+    
+    <Instruction mnemonic="PLA"              mode="Implied"       opcode="68" bytes="1" cycles="4" flags="--.-----" help="Pull accumulator from stack"/>
+    <Instruction mnemonic="PLP"              mode="Implied"       opcode="28" bytes="1" cycles="4" flags="**.*****" help="Pull processor status register from stack"/>
+
+    <Instruction mnemonic="ROLA"             mode="Implied"       opcode="2A" bytes="1" cycles="2" flags="*-.---**" help="Rotate left (accumulator or memory)"/>
+    <Instruction mnemonic="ROL_@LABEL@"      mode="ZeroPage"      opcode="26" bytes="2" cycles="5" flags="*-.---**" help="Rotate left (accumulator or memory)"/>
+    <Instruction mnemonic="ROL_@LABEL@,X"    mode="ZeroPage,X"    opcode="36" bytes="2" cycles="6" flags="*-.---**" help="Rotate left (accumulator or memory)"/>
+    <Instruction mnemonic="ROL_>@LABEL@"     mode="ZeroPage"      opcode="26" bytes="2" cycles="5" flags="*-.---**" help="Rotate left (accumulator or memory)"/>
+    <Instruction mnemonic="ROL_>@LABEL@,X"   mode="ZeroPage,X"    opcode="36" bytes="2" cycles="6" flags="*-.---**" help="Rotate left (accumulator or memory)"/>
+    <Instruction mnemonic="ROL_@LABEL@"      mode="Absolute"      opcode="2E" bytes="3" cycles="6" flags="*-.---**" help="Rotate left (accumulator or memory)"/>
+    <Instruction mnemonic="ROL_@LABEL@,X"    mode="Absolute,X"    opcode="3E" bytes="3" cycles="7" flags="*-.---**" help="Rotate left (accumulator or memory)"/>
+
+    <Instruction mnemonic="RORA"             mode="Implied"       opcode="6A" bytes="1" cycles="2" flags="*-.---**" help="Rotate right (accumulator or memory)"/>
+    <Instruction mnemonic="ROR_@LABEL@"      mode="ZeroPage"      opcode="66" bytes="2" cycles="5" flags="*-.---**" help="Rotate right (accumulator or memory)"/>
+    <Instruction mnemonic="ROR_@LABEL@,X"    mode="ZeroPage,X"    opcode="76" bytes="2" cycles="6" flags="*-.---**" help="Rotate right (accumulator or memory)"/>
+    <Instruction mnemonic="ROR_>@LABEL@"     mode="ZeroPage"      opcode="66" bytes="2" cycles="5" flags="*-.---**" help="Rotate right (accumulator or memory)"/>
+    <Instruction mnemonic="ROR_>@LABEL@,X"   mode="ZeroPage,X"    opcode="76" bytes="2" cycles="6" flags="*-.---**" help="Rotate right (accumulator or memory)"/>
+    <Instruction mnemonic="ROR_@LABEL@"      mode="Absolute"      opcode="6E" bytes="3" cycles="6" flags="*-.---**" help="Rotate right (accumulator or memory)"/>
+    <Instruction mnemonic="ROR_@LABEL@,X"    mode="Absolute,X"    opcode="7E" bytes="3" cycles="7" flags="*-.---**" help="Rotate right (accumulator or memory)"/>
+
+    <Instruction mnemonic="RTI"              mode="Implied"       opcode="40" bytes="1" cycles="6" flags="**.*****" help="Return from interrupt"/>
+
+    <Instruction mnemonic="RTS"              mode="Implied"       opcode="60" bytes="1" cycles="6" flags="--.-----" help="Return from subroutine"/>
+    
+    <Instruction mnemonic="SBC_#@BYTE@"      mode="Immediate"     opcode="E9" bytes="2" cycles="2" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="SBC_@LABEL@"      mode="ZeroPage"      opcode="E5" bytes="2" cycles="3" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="SBC_@LABEL@,X"    mode="ZeroPAge,X"    opcode="F5" bytes="2" cycles="4" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="SBC_>@LABEL@"     mode="ZeroPage"      opcode="E5" bytes="2" cycles="3" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="SBC_>@LABEL@,X"   mode="ZeroPAge,X"    opcode="F5" bytes="2" cycles="4" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="SBC_@LABEL@"      mode="Absolute"      opcode="ED" bytes="3" cycles="4" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="SBC_@LABEL@,X"    mode="Absolute,X"    opcode="FD" bytes="3" cycles="4" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="SBC_@LABEL@,Y"    mode="Absolute,Y"    opcode="F9" bytes="3" cycles="4" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="SBC_(@LABEL@,X)"  mode="Indirect,X"    opcode="E1" bytes="2" cycles="6" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="SBC_(@LABEL@),Y"  mode="Indirect,Y"    opcode="F1" bytes="2" cycles="5" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    
+    <Instruction mnemonic="SEC"              mode="Implied"       opcode="38" bytes="1" cycles="2" flags="--.----1" help="Set carry flag"/>
+    <Instruction mnemonic="SED"              mode="Implied"       opcode="F8" bytes="1" cycles="2" flags="--.-1---" help="Set decimal mode flag"/>
+    <Instruction mnemonic="SEI"              mode="Implied"       opcode="78" bytes="1" cycles="2" flags="--.--1--" help="Set interrupt disable flag"/>
+    
+    <Instruction mnemonic="STA_@LABEL@"      mode="ZeroPage"      opcode="85" bytes="2" cycles="3" flags="--.-----" help="Store acumulator in memory"/>
+    <Instruction mnemonic="STA_@LABEL@,X"    mode="ZeroPage,X"    opcode="95" bytes="2" cycles="4" flags="--.-----" help="Store acumulator in memory"/>
+    <Instruction mnemonic="STA_>@LABEL@"     mode="ZeroPage"      opcode="85" bytes="2" cycles="3" flags="--.-----" help="Store acumulator in memory"/>
+    <Instruction mnemonic="STA_>@LABEL@,X"   mode="ZeroPage,X"    opcode="95" bytes="2" cycles="4" flags="--.-----" help="Store acumulator in memory"/>
+    <Instruction mnemonic="STA_@LABEL@"      mode="Absolute"      opcode="8D" bytes="3" cycles="4" flags="--.-----" help="Store acumulator in memory"/>
+    <Instruction mnemonic="STA_@LABEL@,X"    mode="Absolute,X"    opcode="9D" bytes="3" cycles="5" flags="--.-----" help="Store acumulator in memory"/>
+    <Instruction mnemonic="STA_@LABEL@,Y"    mode="Absolute,Y"    opcode="99" bytes="3" cycles="5" flags="--.-----" help="Store acumulator in memory"/>
+    <Instruction mnemonic="STA_(@LABEL@,X)"  mode="Indirect,X"    opcode="81" bytes="2" cycles="6" flags="--.-----" help="Store acumulator in memory"/>
+    <Instruction mnemonic="STA_(@LABEL@),Y"  mode="Indirect,Y"    opcode="91" bytes="2" cycles="6" flags="--.-----" help="Store acumulator in memory"/>
+    
+    <Instruction mnemonic="STX_@LABEL@"      mode="ZeroPage"      opcode="86" bytes="2" cycles="3" flags="--.-----" help="Store X register in memory"/>
+    <Instruction mnemonic="STX_@LABEL@,Y"    mode="ZeroPage,Y"    opcode="96" bytes="2" cycles="4" flags="--.-----" help="Store X register in memory"/>
+    <Instruction mnemonic="STX_>@LABEL@"     mode="ZeroPage"      opcode="86" bytes="2" cycles="3" flags="--.-----" help="Store X register in memory"/>
+    <Instruction mnemonic="STX_>@LABEL@,Y"   mode="ZeroPage,Y"    opcode="96" bytes="2" cycles="4" flags="--.-----" help="Store X register in memory"/>
+    <Instruction mnemonic="STX_@LABEL@"      mode="Absolute"      opcode="8E" bytes="3" cycles="4" flags="--.-----" help="Store X register in memory"/>
+   
+    <Instruction mnemonic="STY_@LABEL@"      mode="ZeroPage"      opcode="84" bytes="2" cycles="3" flags="--.-----" help="Store Y register in memory"/>
+    <Instruction mnemonic="STY_@LABEL@,X"    mode="ZeroPage,X"    opcode="94" bytes="2" cycles="4" flags="--.-----" help="Store Y register in memory"/>
+    <Instruction mnemonic="STY_>@LABEL@"     mode="ZeroPage"      opcode="84" bytes="2" cycles="3" flags="--.-----" help="Store Y register in memory"/>
+    <Instruction mnemonic="STY_>@LABEL@,X"   mode="ZeroPage,X"    opcode="94" bytes="2" cycles="4" flags="--.-----" help="Store Y register in memory"/>
+    <Instruction mnemonic="STY_@LABEL@"      mode="Absolute"      opcode="8C" bytes="3" cycles="4" flags="--.-----" help="Store Y register in memory"/>
+    
+    <Instruction mnemonic="TAX"              mode="Implied"       opcode="AA" bytes="1" cycles="2" flags="*-.---*-" help="Transfer accumulator to X"/>
+    <Instruction mnemonic="TAY"              mode="Implied"       opcode="A8" bytes="1" cycles="2" flags="*-.---*-" help="Transfer accumulator to Y"/>
+    <Instruction mnemonic="TSX"              mode="Implied"       opcode="BA" bytes="1" cycles="2" flags="*-.---*-." help="Transfer stack pointer to X"/>
+    <Instruction mnemonic="TXA"              mode="Implied"       opcode="8A" bytes="1" cycles="2" flags="*-.---*-" help="Transfer X to the accumulator"/>
+    <Instruction mnemonic="TXS"              mode="Implied"       opcode="9A" bytes="1" cycles="2" flags="--.-----" help="Transfer X to the stack pointer"/>
+    <Instruction mnemonic="TYA"              mode="Implied"       opcode="98" bytes="1" cycles="2" flags="*-.---*-" help="Transfer Y to the accumulator"/>
+    
+
+<!-- C-like mnemonics -->
+
+
+    <Instruction mnemonic="A=A+C+#@BYTE@"      mode="Immediate"     opcode="69" bytes="2" cycles="2" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+C+@LABEL@"      mode="ZeroPage"      opcode="65" bytes="2" cycles="3" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+C+@LABEL@[X]"    mode="ZeroPage,X"    opcode="75" bytes="2" cycles="4" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+C+>@LABEL@"      mode="ZeroPage"      opcode="65" bytes="2" cycles="3" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+C+>@LABEL@[X]"    mode="ZeroPage,X"    opcode="75" bytes="2" cycles="4" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+C+@LABEL@"      mode="Absolute"      opcode="6D" bytes="3" cycles="4" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+C+@LABEL@[X]"    mode="Absolute,X"    opcode="7D" bytes="3" cycles="4" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+C+@LABEL@[Y]"    mode="Absolute,Y"    opcode="79" bytes="3" cycles="4" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+C+(@LABEL@[X])"  mode="Indirect,X"    opcode="61" bytes="2" cycles="6" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+C+(@LABEL@)[Y]"  mode="Indirect,Y"    opcode="71" bytes="2" cycles="5" flags="**.---**" help="Add memory and Carry to Accumulator"/>
+
+    <Instruction mnemonic="A=A+#@BYTE@"      mode="Immediate"     opcode="1869" bytes="3" cycles="4" flags="**.---**" help="Clear carry and Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+@LABEL@"      mode="ZeroPage"      opcode="1865" bytes="3" cycles="5" flags="**.---**" help="Clear carry and Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+@LABEL@[X]"    mode="ZeroPage,X"    opcode="1875" bytes="3" cycles="6" flags="**.---**" help="Clear carry and Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+>@LABEL@"      mode="ZeroPage"      opcode="1865" bytes="3" cycles="5" flags="**.---**" help="Clear carry and Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+>@LABEL@[X]"    mode="ZeroPage,X"    opcode="1875" bytes="3" cycles="6" flags="**.---**" help="Clear carry and Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+@LABEL@"      mode="Absolute"      opcode="186D" bytes="4" cycles="6" flags="**.---**" help="Clear carry and Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+@LABEL@[X]"    mode="Absolute,X"    opcode="187D" bytes="4" cycles="6" flags="**.---**" help="Clear carry and Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+@LABEL@[Y]"    mode="Absolute,Y"    opcode="1879" bytes="4" cycles="6" flags="**.---**" help="Clear carry and Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+(@LABEL@[X])"  mode="Indirect,X"    opcode="1861" bytes="3" cycles="8" flags="**.---**" help="Clear carry and Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A+(@LABEL@)[Y]"  mode="Indirect,Y"    opcode="1871" bytes="3" cycles="7" flags="**.---**" help="Clear carry and Add memory and Carry to Accumulator"/>
+    <Instruction mnemonic="A=A&amp;#@BYTE@"      mode="Immediate"     opcode="29" bytes="2" cycles="2" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    <Instruction mnemonic="A=A&amp;@LABEL@"      mode="ZeroPage"      opcode="25" bytes="2" cycles="3" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    <Instruction mnemonic="A=A&amp;@LABEL@[X]"    mode="ZeroPage,X"    opcode="35" bytes="2" cycles="4" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    <Instruction mnemonic="A=A&amp;>@LABEL@"      mode="ZeroPage"      opcode="25" bytes="2" cycles="3" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    <Instruction mnemonic="A=A&amp;>@LABEL@[X]"    mode="ZeroPage,X"    opcode="35" bytes="2" cycles="4" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+
+    <Instruction mnemonic="A=A&amp;@LABEL@"      mode="Absolute"      opcode="2D" bytes="3" cycles="4" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    <Instruction mnemonic="A=A&amp;@LABEL@[X]"    mode="Absolute,X"    opcode="3D" bytes="3" cycles="4" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    <Instruction mnemonic="A=A&amp;@LABEL@[Y]"    mode="Absolute,Y"    opcode="39" bytes="3" cycles="4" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    <Instruction mnemonic="A=A&amp;(@LABEL@[X])"  mode="Indirect,X"    opcode="21" bytes="2" cycles="6" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+    <Instruction mnemonic="A=A&amp;(@LABEL@)[Y]"  mode="Indirect,Y"    opcode="31" bytes="2" cycles="5" flags="*-.---*-" help="Logically AND Memory with Accumulator"/>
+
+    <Instruction mnemonic="A&lt;&lt;1"            mode="Implied"       opcode="0A" bytes="1" cycles="2" flags="*-.---**" help="Shift Left (Memory or Accumulator)"/>
+    <Instruction mnemonic="@LABEL@&lt;&lt;1"      mode="ZeroPage"      opcode="06" bytes="2" cycles="5" flags="*-.---**" help="Shift Left (Memory or Accumulator)"/>
+    <Instruction mnemonic="@LABEL@[X]&lt;&lt;1"    mode="ZeroPage,X"    opcode="16" bytes="2" cycles="6" flags="*-.---**" help="Shift Left (Memory or Accumulator)"/>
+    <Instruction mnemonic=">@LABEL@&lt;&lt;1"      mode="ZeroPage"      opcode="06" bytes="2" cycles="5" flags="*-.---**" help="Shift Left (Memory or Accumulator)"/>
+    <Instruction mnemonic=">@LABEL@[X]&lt;&lt;1"    mode="ZeroPage,X"    opcode="16" bytes="2" cycles="6" flags="*-.---**" help="Shift Left (Memory or Accumulator)"/>
+    <Instruction mnemonic="@LABEL@&lt;&lt;1"      mode="Absolute"      opcode="0E" bytes="3" cycles="6" flags="*-.---**" help="Shift Left (Memory or Accumulator)"/>
+    <Instruction mnemonic="@LABEL@[X]&lt;&lt;1"    mode="Absolute,X"    opcode="1E" bytes="3" cycles="7" flags="*-.---**" help="Shift Left (Memory or Accumulator)"/>
+
+    <Instruction mnemonic="C=0"              mode="Implied"       opcode="18" bytes="1" cycles="2" flags="--.----0" help="Clear carry flag"/>
+    <Instruction mnemonic="NOCARRY"          mode="Implied"       opcode="18" bytes="1" cycles="2" flags="--.----0" help="Clear carry flag"/>    
+    <Instruction mnemonic="YESBORROW"        mode="Implied"       opcode="18" bytes="1" cycles="2" flags="--.----0" help="Clear carry flag"/>        
+    <Instruction mnemonic="D=0"              mode="Implied"       opcode="D8" bytes="1" cycles="2" flags="--.-0---" help="Clear decimal mode flag"/>
+    <Instruction mnemonic="I=0"              mode="Implied"       opcode="58" bytes="1" cycles="2" flags="--.--0--" help="Clear interrupt disable flag"/>
+    <Instruction mnemonic="V=0"              mode="Implied"       opcode="B8" bytes="1" cycles="2" flags="-0.-----" help="Clear overflow flag"/>
+
+    <Instruction mnemonic="--@LABEL@"      mode="ZeroPage"      opcode="C6" bytes="2" cycles="5" flags="*-.---*-" help="Decrement memory contents"/>
+    <Instruction mnemonic="--@LABEL@[X]"    mode="ZeroPage,X"    opcode="D6" bytes="2" cycles="6" flags="*-.---*-" help="Decrement memory contents"/>
+    <Instruction mnemonic="-->@LABEL@"      mode="ZeroPage"      opcode="C6" bytes="2" cycles="5" flags="*-.---*-" help="Decrement memory contents"/>
+    <Instruction mnemonic="-->@LABEL@[X]"    mode="ZeroPage,X"    opcode="D6" bytes="2" cycles="6" flags="*-.---*-" help="Decrement memory contents"/>
+    <Instruction mnemonic="--@LABEL@"      mode="Absolute"      opcode="CE" bytes="3" cycles="6" flags="*-.---*-" help="Decrement memory contents"/>
+    <Instruction mnemonic="--@LABEL@[Y]"    mode="Absolute,X"    opcode="DE" bytes="3" cycles="7" flags="*-.---*-" help="Decrement memory contents"/>
+
+    <Instruction mnemonic="--X"              mode="Implied"       opcode="CA" bytes="1" cycles="2" flags="*-.---*-" help="Decrement the X register"/>
+    <Instruction mnemonic="--Y"              mode="Implied"       opcode="88" bytes="1" cycles="2" flags="*-.---*-" help="Decrement the Y register"/>
+
+    <Instruction mnemonic="A=A^#@BYTE@"      mode="Immediate"     opcode="49" bytes="2" cycles="2" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="A=A^@LABEL@"      mode="ZeroPage"      opcode="45" bytes="2" cycles="3" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="A=A^@LABEL@[X]"    mode="ZeroPage,X"    opcode="55" bytes="2" cycles="4" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="A=A^>@LABEL@"      mode="ZeroPage"      opcode="45" bytes="2" cycles="3" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="A=A^>@LABEL@[X]"    mode="ZeroPage,X"    opcode="55" bytes="2" cycles="4" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="A=A^@LABEL@"      mode="Absolute"      opcode="4D" bytes="3" cycles="4" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="A=A^@LABEL@[X]"    mode="Absolute,X"    opcode="5D" bytes="3" cycles="4" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="A=A^@LABEL@[Y]"    mode="Absolute,Y"    opcode="59" bytes="3" cycles="4" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="A=A^(@LABEL@[X])"  mode="Indirect,X"    opcode="41" bytes="2" cycles="6" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+    <Instruction mnemonic="A=A^(@LABEL@)[Y]"  mode="Indirect,Y"    opcode="51" bytes="2" cycles="5" flags="*-.---*-" help="Logically XOR Memory with Accumulator"/>
+
+    <Instruction mnemonic="++@LABEL@"      mode="ZeroPage"      opcode="E6" bytes="2" cycles="5" flags="*-.---*-" help="Increment memory data"/>
+    <Instruction mnemonic="++@LABEL@[X]"    mode="ZeroPage,X"    opcode="F6" bytes="2" cycles="6" flags="*-.---*-" help="Increment memory data"/>
+    <Instruction mnemonic="++>@LABEL@"      mode="ZeroPage"      opcode="E6" bytes="2" cycles="5" flags="*-.---*-" help="Increment memory data"/>
+    <Instruction mnemonic="++>@LABEL@[X]"    mode="ZeroPage,X"    opcode="F6" bytes="2" cycles="6" flags="*-.---*-" help="Increment memory data"/>
+    <Instruction mnemonic="++@LABEL@"      mode="Absolute"      opcode="EE" bytes="3" cycles="6" flags="*-.---*-" help="Increment memory data"/>
+    <Instruction mnemonic="++@LABEL@[Y]"    mode="Absolute,X"    opcode="FE" bytes="3" cycles="7" flags="*-.---*-" help="Increment memory data"/>
+
+    <Instruction mnemonic="++X"              mode="Implied"       opcode="E8" bytes="1" cycles="2" flags="*-.---*-" help="Incrememtn the X register"/>
+    <Instruction mnemonic="++Y"              mode="Implied"       opcode="C8" bytes="1" cycles="2" flags="*-.---*-" help="Increment the Y register"/>
+
+    <Instruction mnemonic="GOTO@LABEL@"      mode="Absolute"      opcode="4C" bytes="3" cycles="3" flags="--.-----" help="Unconditional Jump"/>
+    <Instruction mnemonic="GOTO(@LABEL@)"    mode="Indirect"      opcode="5C" bytes="3" cycles="5" flags="--.-----" help="Unconditional Jump"/>
+
+    <Instruction mnemonic="CALL@LABEL@"      mode="Absolute"      opcode="20" bytes="3" cycles="6" flags="--.-----" help="Jump to subroutine"/>
+
+    <Instruction mnemonic="A=#@BYTE@"      mode="Immediate"     opcode="A9" bytes="2" cycles="2" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="A=@LABEL@"      mode="ZeroPage"      opcode="A5" bytes="2" cycles="3" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="A=@LABEL@[X]"    mode="ZeroPage,X"    opcode="B5" bytes="2" cycles="4" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="A=>@LABEL@"      mode="ZeroPage"      opcode="A5" bytes="2" cycles="3" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="A=>@LABEL@[X]"    mode="ZeroPage,X"    opcode="B5" bytes="2" cycles="4" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="A=@LABEL@"      mode="Absolute"      opcode="AD" bytes="3" cycles="4" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="A=@LABEL@[X]"    mode="Absolute,X"    opcode="BD" bytes="3" cycles="4" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="A=@LABEL@[Y]"    mode="Absolute,Y"    opcode="B9" bytes="3" cycles="4" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="A=(@LABEL@[X])"  mode="Indirect,X"    opcode="A1" bytes="2" cycles="6" flags="*-.---*-" help="Load accumulator from memory"/>
+    <Instruction mnemonic="A=(@LABEL@)[Y]"  mode="Indirect,Y"    opcode="B1" bytes="2" cycles="5" flags="*-.---*-" help="Load accumulator from memory"/>
+
+    <Instruction mnemonic="X=#@BYTE@"      mode="Immediate"     opcode="A2" bytes="2" cycles="2" flags="*-.---*-" help="Load X from memory"/>
+    <Instruction mnemonic="X=@LABEL@"      mode="ZeroPage"      opcode="A6" bytes="2" cycles="3" flags="*-.---*-" help="Load X from memory"/>
+    <Instruction mnemonic="X=@LABEL@[Y]"    mode="ZeroPage,Y"    opcode="B6" bytes="2" cycles="4" flags="*-.---*-" help="Load X from memory"/>
+    <Instruction mnemonic="X=>@LABEL@"      mode="ZeroPage"      opcode="A6" bytes="2" cycles="3" flags="*-.---*-" help="Load X from memory"/>
+    <Instruction mnemonic="X=>@LABEL@[Y]"    mode="ZeroPage,Y"    opcode="B6" bytes="2" cycles="4" flags="*-.---*-" help="Load X from memory"/>
+    <Instruction mnemonic="X=@LABEL@"      mode="Absolute"      opcode="AE" bytes="3" cycles="4" flags="*-.---*-" help="Load X from memory"/>
+    <Instruction mnemonic="X=@LABEL@[Y]"    mode="Absolute,Y"    opcode="BE" bytes="3" cycles="4" flags="*-.---*-" help="Load X from memory"/>
+
+    <Instruction mnemonic="Y=#@BYTE@"      mode="Immediate"     opcode="A0" bytes="2" cycles="2" flags="*-.---*-" help="Load Y from memory"/>
+    <Instruction mnemonic="Y=@LABEL@"      mode="ZeroPage"      opcode="A4" bytes="2" cycles="3" flags="*-.---*-" help="Load Y from memory"/>
+    <Instruction mnemonic="Y=@LABEL@[X]"    mode="ZeroPage,X"    opcode="B4" bytes="2" cycles="4" flags="*-.---*-" help="Load Y from memory"/>
+    <Instruction mnemonic="Y=>@LABEL@"      mode="ZeroPage"      opcode="A4" bytes="2" cycles="3" flags="*-.---*-" help="Load Y from memory"/>
+    <Instruction mnemonic="Y=>@LABEL@[X]"    mode="ZeroPage,X"    opcode="B4" bytes="2" cycles="4" flags="*-.---*-" help="Load Y from memory"/>
+    <Instruction mnemonic="Y=@LABEL@"      mode="Absolute"      opcode="AC" bytes="3" cycles="4" flags="*-.---*-" help="Load Y from memory"/>
+    <Instruction mnemonic="Y=@LABEL@[X]"    mode="Absolute,X"    opcode="BC" bytes="3" cycles="4" flags="*-.---*-" help="Load Y from memory"/>
+
+    <Instruction mnemonic="A&gt;&gt;1"            mode="Implied"       opcode="4A" bytes="1" cycles="2" flags="0-.---**" help="Shift right (memory or accumulator)"/>
+    <Instruction mnemonic="@LABEL@&gt;&gt;1"      mode="ZeroPage"      opcode="46" bytes="2" cycles="5" flags="0-.---**" help="Shift right (memory or accumulator)"/>
+    <Instruction mnemonic="@LABEL@[X]&gt;&gt;1"    mode="ZeroPage,X"    opcode="56" bytes="2" cycles="6" flags="0-.---**" help="Shift right (memory or accumulator)"/>
+    <Instruction mnemonic=">@LABEL@&gt;&gt;1"      mode="ZeroPage"      opcode="46" bytes="2" cycles="5" flags="0-.---**" help="Shift right (memory or accumulator)"/>
+    <Instruction mnemonic=">@LABEL@[X]&gt;&gt;1"    mode="ZeroPage,X"    opcode="56" bytes="2" cycles="6" flags="0-.---**" help="Shift right (memory or accumulator)"/>
+    <Instruction mnemonic="@LABEL@&gt;&gt;1"      mode="Absolute"      opcode="4E" bytes="3" cycles="6" flags="0-.---**" help="Shift right (memory or accumulator)"/>
+    <Instruction mnemonic="@LABEL@[X]&gt;&gt;1"    mode="Absolute,X"    opcode="5E" bytes="3" cycles="7" flags="0-.---**" help="Shift right (memory or accumulator)"/>
+
+    <Instruction mnemonic="RETURN"              mode="Implied"       opcode="60" bytes="1" cycles="6" flags="--.-----" help="Return from subroutine"/>
+
+    <Instruction mnemonic="A=A-C-#@BYTE@"      mode="Immediate"     opcode="E9" bytes="2" cycles="2" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A-C-@LABEL@"      mode="ZeroPage"      opcode="E5" bytes="2" cycles="3" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A-C-@LABEL@[X]"    mode="ZeroPAge,X"    opcode="F5" bytes="2" cycles="4" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A-C->@LABEL@"      mode="ZeroPage"      opcode="E5" bytes="2" cycles="3" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A-C->@LABEL@[X]"    mode="ZeroPAge,X"    opcode="F5" bytes="2" cycles="4" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A-C-@LABEL@"      mode="Absolute"      opcode="ED" bytes="3" cycles="4" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A-C-@LABEL@[X]"    mode="Absolute,X"    opcode="FD" bytes="3" cycles="4" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A-C-@LABEL@[Y]"    mode="Absolute,Y"    opcode="F9" bytes="3" cycles="4" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A-C-(@LABEL@[X])"  mode="Indirect,X"    opcode="E1" bytes="2" cycles="6" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A-C-(@LABEL@)[Y]"  mode="Indirect,Y"    opcode="F1" bytes="2" cycles="5" flags="*-.---**" help="Subtract memory from accumulator with borrow"/>
+
+    <Instruction mnemonic="A=A-#@BYTE@"      mode="Immediate"     opcode="38E9" bytes="3" cycles="4" flags="*-.---**" help="Set carry and Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A-@LABEL@"      mode="ZeroPage"      opcode="38E5" bytes="3" cycles="5" flags="*-.---**" help="Set carry and Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A-@LABEL@[X]"    mode="ZeroPAge,X"    opcode="38F5" bytes="3" cycles="6" flags="*-.---**" help="Set carry and Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A->@LABEL@"      mode="ZeroPage"      opcode="38E5" bytes="3" cycles="5" flags="*-.---**" help="Set carry and Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A->@LABEL@[X]"    mode="ZeroPAge,X"    opcode="38F5" bytes="3" cycles="6" flags="*-.---**" help="Set carry and Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A-@LABEL@"      mode="Absolute"      opcode="38ED" bytes="4" cycles="6" flags="*-.---**" help="Set carry and Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A-@LABEL@[X]"    mode="Absolute,X"    opcode="38FD" bytes="4" cycles="6" flags="*-.---**" help="Set carry and Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A-@LABEL@[Y]"    mode="Absolute,Y"    opcode="38F9" bytes="4" cycles="6" flags="*-.---**" help="Set carry and Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A-(@LABEL@[X])"  mode="Indirect,X"    opcode="38E1" bytes="3" cycles="8" flags="*-.---**" help="Set carry and Subtract memory from accumulator with borrow"/>
+    <Instruction mnemonic="A=A-(@LABEL@)[Y]"  mode="Indirect,Y"    opcode="38F1" bytes="3" cycles="7" flags="*-.---**" help="Set carry and Subtract memory from accumulator with borrow"/>
+
+    <Instruction mnemonic="C=1"              mode="Implied"       opcode="38" bytes="1" cycles="2" flags="--.----1" help="Set carry flag"/>
+    <Instruction mnemonic="NOBORROW"         mode="Implied"       opcode="38" bytes="1" cycles="2" flags="--.----1" help="Set carry flag"/>    
+    <Instruction mnemonic="YESCARRY"         mode="Implied"       opcode="38" bytes="1" cycles="2" flags="--.----1" help="Set carry flag"/>        
+    <Instruction mnemonic="D=1"              mode="Implied"       opcode="F8" bytes="1" cycles="2" flags="--.-1---" help="Set decimal mode flag"/>
+    <Instruction mnemonic="I=1"              mode="Implied"       opcode="78" bytes="1" cycles="2" flags="--.--1--" help="Set interrupt disable flag"/>
+
+    <Instruction mnemonic="A=A|#@BYTE@"      mode="Immediate"     opcode="09" bytes="2" cycles="2" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="A=A|@LABEL@"      mode="ZeroPage"      opcode="05" bytes="2" cycles="3" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="A=A|@LABEL@[X]"    mode="ZeroPage,X"    opcode="15" bytes="2" cycles="4" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="A=A|>@LABEL@"      mode="ZeroPage"      opcode="05" bytes="2" cycles="3" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="A=A|>@LABEL@[X]"    mode="ZeroPage,X"    opcode="15" bytes="2" cycles="4" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="A=A|@LABEL@"      mode="Absolute"      opcode="0D" bytes="3" cycles="4" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="A=A|@LABEL@[X]"    mode="Absolute,X"    opcode="1D" bytes="3" cycles="4" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="A=A|@LABEL@[Y]"    mode="Absolute,Y"    opcode="19" bytes="3" cycles="4" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="A=A|(@LABEL@[X])"  mode="Indirect,X"    opcode="01" bytes="2" cycles="6" flags="*-.---*-" help="OR memory with accumulator"/>
+    <Instruction mnemonic="A=A|(@LABEL@)[Y]"  mode="Indirect,Y"    opcode="11" bytes="2" cycles="5" flags="*-.---*-" help="OR memory with accumulator"/>
+
+    <Instruction mnemonic="PUSHA"              mode="Implied"       opcode="48" bytes="1" cycles="3" flags="--.-----" help="Push accumulator on stack"/>
+
+    <Instruction mnemonic="PUSHP"              mode="Implied"       opcode="08" bytes="1" cycles="3" flags="--.-----" help="Push processor status register on stack"/>
+
+    <Instruction mnemonic="POPA"              mode="Implied"       opcode="68" bytes="1" cycles="4" flags="--.-----" help="Pull accumulator from stack"/>
+    <Instruction mnemonic="POPP"              mode="Implied"       opcode="28" bytes="1" cycles="4" flags="**.*****" help="Pull processor status register from stack"/>
+
+    <Instruction mnemonic="@LABEL@=A"      mode="ZeroPage"      opcode="85" bytes="2" cycles="3" flags="--.-----" help="Store acumulator in memory"/>
+    <Instruction mnemonic="@LABEL@[X]=A"    mode="ZeroPage,X"    opcode="95" bytes="2" cycles="4" flags="--.-----" help="Store acumulator in memory"/>
+    <Instruction mnemonic=">@LABEL@=A"      mode="ZeroPage"      opcode="85" bytes="2" cycles="3" flags="--.-----" help="Store acumulator in memory"/>
+    <Instruction mnemonic=">@LABEL@[X]=A"    mode="ZeroPage,X"    opcode="95" bytes="2" cycles="4" flags="--.-----" help="Store acumulator in memory"/>
+    <Instruction mnemonic="@LABEL@=A"      mode="Absolute"      opcode="8D" bytes="3" cycles="4" flags="--.-----" help="Store acumulator in memory"/>
+    <Instruction mnemonic="@LABEL@[X]=A"    mode="Absolute,X"    opcode="9D" bytes="3" cycles="5" flags="--.-----" help="Store acumulator in memory"/>
+    <Instruction mnemonic="@LABEL@[Y]=A"    mode="Absolute,Y"    opcode="99" bytes="3" cycles="5" flags="--.-----" help="Store acumulator in memory"/>
+    <Instruction mnemonic="(@LABEL@[X])=A"    mode="Indirect,X"    opcode="81" bytes="2" cycles="6" flags="--.-----" help="Store acumulator in memory"/>
+    <Instruction mnemonic="(@LABEL@)[Y]=A"    mode="Indirect,Y"    opcode="91" bytes="2" cycles="6" flags="--.-----" help="Store acumulator in memory"/>
+
+    <Instruction mnemonic="@LABEL@=X"      mode="ZeroPage"      opcode="86" bytes="2" cycles="3" flags="--.-----" help="Store X register in memory"/>
+    <Instruction mnemonic="@LABEL@[Y]=X"    mode="ZeroPage,Y"    opcode="96" bytes="2" cycles="4" flags="--.-----" help="Store X register in memory"/>
+    <Instruction mnemonic=">@LABEL@=X"      mode="ZeroPage"      opcode="86" bytes="2" cycles="3" flags="--.-----" help="Store X register in memory"/>
+    <Instruction mnemonic=">@LABEL@[Y]=X"    mode="ZeroPage,Y"    opcode="96" bytes="2" cycles="4" flags="--.-----" help="Store X register in memory"/>
+    <Instruction mnemonic="@LABEL@=X"      mode="Absolute"      opcode="8E" bytes="3" cycles="4" flags="--.-----" help="Store X register in memory"/>
+
+    <Instruction mnemonic="@LABEL@=Y"      mode="ZeroPage"      opcode="84" bytes="2" cycles="3" flags="--.-----" help="Store Y register in memory"/>
+    <Instruction mnemonic="@LABEL@[X]=Y"    mode="ZeroPage,X"    opcode="94" bytes="2" cycles="4" flags="--.-----" help="Store Y register in memory"/>
+    <Instruction mnemonic=">@LABEL@=Y"      mode="ZeroPage"      opcode="84" bytes="2" cycles="3" flags="--.-----" help="Store Y register in memory"/>
+    <Instruction mnemonic=">@LABEL@[X]=Y"    mode="ZeroPage,X"    opcode="94" bytes="2" cycles="4" flags="--.-----" help="Store Y register in memory"/>
+    <Instruction mnemonic="@LABEL@=Y"      mode="Absolute"      opcode="8C" bytes="3" cycles="4" flags="--.-----" help="Store Y register in memory"/>
+
+    <Instruction mnemonic="X=A"              mode="Implied"       opcode="AA" bytes="1" cycles="2" flags="*-.---*-" help="Transfer accumulator to X"/>
+    <Instruction mnemonic="Y=A"              mode="Implied"       opcode="A8" bytes="1" cycles="2" flags="*-.---*-" help="Transfer accumulator to Y"/>
+    <Instruction mnemonic="X=S"              mode="Implied"       opcode="BA" bytes="1" cycles="2" flags="*-.---*-." help="Transfer stack pointer to X"/>
+    <Instruction mnemonic="A=X"              mode="Implied"       opcode="8A" bytes="1" cycles="2" flags="*-.---*-" help="Transfer X to the accumulator"/>
+    <Instruction mnemonic="S=X"              mode="Implied"       opcode="9A" bytes="1" cycles="2" flags="--.-----" help="Transfer X to the stack pointer"/>
+    <Instruction mnemonic="A=Y"              mode="Implied"       opcode="98" bytes="1" cycles="2" flags="*-.---*-" help="Transfer Y to the accumulator"/>
+
+    <Instruction mnemonic="ATO#@BYTE@"      mode="Immediate"     opcode="C9" bytes="2" cycles="3" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="ATO@LABEL@"      mode="ZeroPage"      opcode="C5" bytes="2" cycles="3" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="ATOP@LABEL@,X"    mode="ZeroPage,X"    opcode="D5" bytes="2" cycles="4" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="ATO>@LABEL@"      mode="ZeroPage"      opcode="C5" bytes="2" cycles="3" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="ATO>@LABEL@,X"    mode="ZeroPage,X"    opcode="D5" bytes="2" cycles="4" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="ATO@LABEL@"      mode="Absolute"      opcode="CD" bytes="3" cycles="4" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="ATO@LABEL@,X"    mode="Absolute,X"    opcode="DD" bytes="3" cycles="4" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="ATO@LABEL@,Y"    mode="Absolute,Y"    opcode="D9" bytes="3" cycles="4" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="ATO(@LABEL@,X)"  mode="Indirect,X"    opcode="C1" bytes="2" cycles="6" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="ATO(@LABEL@),Y"  mode="Indirect,Y"    opcode="D1" bytes="2" cycles="5" flags="*-.---**" help="Compare accumulator with memory"/>
+    <Instruction mnemonic="XTO#@BYTE@"      mode="Immediate"     opcode="E0" bytes="2" cycles="2" flags="*-.---**" help="Compare the X register with memory"/>
+    <Instruction mnemonic="XTO@LABEL@"      mode="ZeroPage"      opcode="E4" bytes="2" cycles="3" flags="*-.---**" help="Compare the X register with memory"/>
+    <Instruction mnemonic="XTO>@LABEL@"      mode="ZeroPage"      opcode="E4" bytes="2" cycles="3" flags="*-.---**" help="Compare the X register with memory"/>
+    <Instruction mnemonic="XTO@LABEL@"      mode="Absolute"      opcode="EC" bytes="3" cycles="4" flags="*-.---**" help="Compare the X register with memory"/>
+    <Instruction mnemonic="YTO#@BYTE@"      mode="Immediate"     opcode="C0" bytes="2" cycles="2" flags="*-.---**" help="Compare Y register with memory"/>
+    <Instruction mnemonic="YTO@LABEL@"      mode="ZeroPage"      opcode="C4" bytes="2" cycles="3" flags="*-.---**" help="Compare Y register with memory"/>
+    <Instruction mnemonic="YTO>@LABEL@"      mode="ZeroPage"      opcode="C4" bytes="2" cycles="3" flags="*-.---**" help="Compare Y register with memory"/>
+    <Instruction mnemonic="YTO@LABEL@"      mode="Absolute"      opcode="CC" bytes="3" cycles="4" flags="*-.---**" help="Compare Y register with memory"/>
+
+    <Instruction mnemonic="GO(&lt;)"              mode="Relative"      opcode="90" bytes="2" cycles="2" flags="--.-----" help="Branch if Carry Flag Cleared"/>
+    <Instruction mnemonic="GO(>=)"              mode="Relative"      opcode="B0" bytes="2" cycles="2" flags="--.-----" help="Branch if Carry Flag is Set"/>
+    <Instruction mnemonic="GO(==)"              mode="Relative"      opcode="F0" bytes="2" cycles="2" flags="--.-----" help="Branch if result equal to zero."/>    
+    <Instruction mnemonic="GO(!=)"              mode="Relative"      opcode="D0" bytes="2" cycles="2" flags="--.-----" help="Branch if result is ont equal to zero"/>
+    <Instruction mnemonic="GO(ZERO)"              mode="Relative"      opcode="F0" bytes="2" cycles="2" flags="--.-----" help="Branch if result equal to zero."/>    
+    <Instruction mnemonic="GO(!ZERO)"              mode="Relative"      opcode="D0" bytes="2" cycles="2" flags="--.-----" help="Branch if result is ont equal to zero"/>
+
+
+</ProcessorDescription>
+

@@ -1,0 +1,1357 @@
+0001   0000             ;				Atari Combat Game
+0002   0000             
+0003   0000             
+0004   0000             
+0005   0000             ; Memory Usage
+0006   0000             ; E0-E3		score pattern offsets
+0007   0000             ; DE-DF		score pattern calculation temporaries
+0008   0000             ; A1-A2		scores
+0009   0000             ; D2		score conversion temporary
+0010   0000             
+0011   0000             ; 9B-9C		sound pitch storage
+0012   0000             ; B5-BA		lo-res indirect addresses
+0013   0000             ; DA		hi-res patterns
+0014   0000             ; D6-D7		colors
+0015   0000             
+0016   0000             
+0017   0000             
+0018   0000             ;=============================================================================
+0019   0000             ; HARDWARE
+0020   0000             ;
+0021   0000             ; TIA WRITE ADDRESSES
+0022   0000             SYNC   .EQU $0000
+0023   0000             VBLANK .EQU $0001
+0024   0000             WSYNC  .EQU $0002
+0025   0000             RSYNC  .EQU $0003
+0026   0000             NUSIZ0 .EQU $0004
+0027   0000             NUSIZ1 .EQU $0005
+0028   0000             COLUP0 .EQU $0006
+0029   0000             COLUP1 .EQU $0007
+0030   0000             COLUPF .EQU $0008
+0031   0000             COLUBK .EQU $0009
+0032   0000             CTRLPF .EQU $000A
+0033   0000             REFP0  .EQU $000B
+0034   0000             REFP1  .EQU $000C
+0035   0000             PF0    .EQU $000D
+0036   0000             PF1    .EQU $000E
+0037   0000             PF2    .EQU $000F
+0038   0000             RESP0  .EQU $0010
+0039   0000             RESP1  .EQU $0011
+0040   0000             RESM0  .EQU $0012
+0041   0000             RESM1  .EQU $0013
+0042   0000             RESBL  .EQU $0014
+0043   0000             AUDC0  .EQU $0015
+0044   0000             AUDC1  .EQU $0016
+0045   0000             AUDF0  .EQU $0017
+0046   0000             AUDF1  .EQU $0018
+0047   0000             AUDV0  .EQU $0019
+0048   0000             AUDV1  .EQU $001A
+0049   0000             GRP0   .EQU $001B
+0050   0000             GRP1   .EQU $001C
+0051   0000             ENAM0  .EQU $001D
+0052   0000             ENAM1  .EQU $001E
+0053   0000             ENABL  .EQU $001F
+0054   0000             HMP0   .EQU $0020
+0055   0000             HMP1   .EQU $0021
+0056   0000             HMM0   .EQU $0022
+0057   0000             HMM1   .EQU $0023
+0058   0000             HMBL   .EQU $0024
+0059   0000             VDELP0 .EQU $0025
+0060   0000             VDEL01 .EQU $0026
+0061   0000             VDELBL .EQU $0027
+0062   0000             RESMP0 .EQU $0028
+0063   0000             RESMP1 .EQU $0029
+0064   0000             HMOVE  .EQU $002A
+0065   0000             HMCLR  .EQU $002B
+0066   0000             CXCLR  .EQU $002C
+0067   0000             ;
+0068   0000             ; TIA READ ADDRESSES (Ghosting from the $0000 base?)
+0069   0000             CXM0P  .EQU $0030
+0070   0000             CXM1P  .EQU $0031
+0071   0000             CXP0FB .EQU $0032
+0072   0000             CXP1FB .EQU $0033
+0073   0000             CXM0FB .EQU $0034
+0074   0000             CXM1FB .EQU $0035
+0075   0000             CXBLPF .EQU $0036
+0076   0000             CXPPMM .EQU $0037
+0077   0000             INPT0  .EQU $0038
+0078   0000             INPT1  .EQU $0039
+0079   0000             INPT2  .EQU $003A
+0080   0000             INPT3  .EQU $003B
+0081   0000             INPT4  .EQU $003C
+0082   0000             INPT5  .EQU $003D
+0083   0000             ;
+0084   0000             ; PIA I/O
+0085   0000             SWCHA  .EQU $0280
+0086   0000             SWACNT .EQU $0281
+0087   0000             SWCHB  .EQU $0282
+0088   0000             SWBCNT .EQU $0283
+0089   0000             ; PIA Timer
+0090   0000             INTIM  .EQU $0284
+0091   0000             TIM1T  .EQU $0294
+0092   0000             TIM8T  .EQU $0295
+0093   0000             TIM64T .EQU $0296
+0094   0000             T1024T .EQU $0297
+0095   0000             ;
+0096   0000             ;=============================================================================
+0097   0000             
+0098   F000             .org $F000
+0099   F000             
+0100   F000 78          		SEI  
+0101   F001 D8          		CLD  
+0102   F002 A2 FF       		LDX  #$FF			; Start stack ...
+0103   F004 9A          		TXS					; ... at top of RAM
+0104   F005 A2 5D       		LDX  #$5D			; Clear memory from ... 
+0105   F007 20 BD F5    		JSR  ClearMemory	; ... $00 - $A2		
+0106   F00A A9 10       		LDA  #$10
+0107   F00C 8D 83 02    		STA  SWCHB+1
+0108   F00F 85 88       		STA  $88
+0109   F011 20 A3 F1    		JSR  J11A3
+0110   F014             
+0111   F014 20 32 F0    MLOOP	JSR  NWSCR		; $1014
+0112   F017 20 57 F1    		JSR  J1157
+0113   F01A 20 72 F5    		JSR  J1572
+0114   F01D 20 DA F2    		JSR  J12DA
+0115   F020 20 44 F4    		JSR  J1444
+0116   F023 20 14 F2    		JSR  J1214
+0117   F026 20 A9 F2    		JSR  J12A9
+0118   F029 20 F2 F1    		JSR  J11F2
+0119   F02C 20 54 F0    		JSR  J1054
+0120   F02F 4C 14 F0    		JMP  MLOOP
+0121   F032             
+0122   F032             ;----------------------------------------------------------------------------
+0123   F032             ; VIDEO KERNEL
+0124   F032             ;----------------------------------------------------------------------------
+0125   F032             
+0126   F032 E6 86       NWSCR	INC  $86;		initial blanking and retrace start
+0127   F034 85 2B       		STA  HMCLR
+0128   F036 A9 02       		LDA  #$02
+0129   F038 85 02       		STA  WSYNC
+0130   F03A 85 01       		STA  VBLANK
+0131   F03C 85 02       		STA  WSYNC
+0132   F03E 85 02       		STA  WSYNC
+0133   F040 85 02       		STA  WSYNC		
+0134   F042 85 00       		STA  SYNC
+0135   F044 85 02       		STA  WSYNC
+0136   F046 85 02       		STA  WSYNC
+0137   F048 A9 00       		LDA  #$00
+0138   F04A 85 02       		STA  WSYNC
+0139   F04C 85 00       		STA  SYNC
+0140   F04E A9 2B       		LDA  #$2B
+0141   F050 8D 96 02    		STA  TIM64T
+0142   F053 60          		RTS  
+0143   F054             
+0144   F054 A9 20       J1054	LDA  #$20
+0145   F056 85 B4       		STA  $B4
+0146   F058 85 02       		STA  WSYNC
+0147   F05A 85 2A       		STA  HMOVE
+0148   F05C AD 84 02    B105C	LDA  INTIM
+0149   F05F D0 FB       		BNE  B105C
+0150   F061 85 02       		STA  WSYNC
+0151   F063 85 2C       		STA  CXCLR
+0152   F065 85 01       		STA  VBLANK
+0153   F067 BA          		TSX  
+0154   F068 86 D3       		STX  $D3 ;		Save stack pointer
+0155   F06A A9 02       		LDA  #$02
+0156   F06C 85 0A       		STA  CTRLPF
+0157   F06E A6 DC       		LDX  $DC
+0158   F070 85 02       B1070	STA  WSYNC
+0159   F072 CA          		DEX  
+0160   F073 D0 FB       		BNE  B1070
+0161   F075 A5 DC       		LDA  $DC
+0162   F077 C9 0E       		CMP  #$0E
+0163   F079 F0 52       		BEQ  B10CD
+0164   F07B A2 05       		LDX  #$05
+0165   F07D A9 00       		LDA  #$00
+0166   F07F 85 DE       		STA  $DE
+0167   F081 85 DF       		STA  $DF
+0168   F083 85 02       J1083	STA  WSYNC
+0169   F085 A5 DE       		LDA  $DE
+0170   F087 85 0E       		STA  PF1
+0171   F089 A4 E2       		LDY  $E2
+0172   F08B B9 C5 F5    		LDA  L15C5,Y
+0173   F08E 29 F0       		AND  #$F0
+0174   F090 85 DE       		STA  $DE
+0175   F092 A4 E0       		LDY  $E0
+0176   F094 B9 C5 F5    		LDA  $L15C5,Y
+0177   F097 29 0F       		AND  #$0F
+0178   F099 05 DE       		ORA  $DE
+0179   F09B 85 DE       		STA  $DE
+0180   F09D A5 DF       		LDA  $DF
+0181   F09F 85 0E       		STA  PF1
+0182   F0A1 A4 E3       		LDY  $E3
+0183   F0A3 B9 C5 F5    		LDA  L15C5,Y
+0184   F0A6 29 F0       		AND  #$F0
+0185   F0A8 85 DF       		STA  $DF
+0186   F0AA A4 E1       		LDY  $E1
+0187   F0AC B9 C5 F5    		LDA  L15C5,Y
+0188   F0AF 25 87       		AND  $87
+0189   F0B1 85 02       		STA  WSYNC
+0190   F0B3 05 DF       		ORA  $DF
+0191   F0B5 85 DF       		STA  $DF
+0192   F0B7 A5 DE       		LDA  $DE
+0193   F0B9 85 0E       		STA  PF1
+0194   F0BB CA          		DEX  
+0195   F0BC 30 0F       		BMI  B10CD
+0196   F0BE E6 E0       		INC  $E0
+0197   F0C0 E6 E2       		INC  $E2
+0198   F0C2 E6 E1       		INC  $E1
+0199   F0C4 E6 E3       		INC  $E3
+0200   F0C6 A5 DF       		LDA  $DF
+0201   F0C8 85 0E       		STA  PF1
+0202   F0CA 4C 83 F0    		JMP  J1083
+0203   F0CD             ;
+0204   F0CD             
+0205   F0CD A9 00       B10CD	LDA  #$00 ;		Inner Display Loop
+0206   F0CF 85 0E       		STA  PF1
+0207   F0D1 85 02       		STA  WSYNC		
+0208   F0D3 A9 05       		LDA  #$05
+0209   F0D5 85 0A       		STA  CTRLPF
+0210   F0D7 A5 D6       		LDA  $D6
+0211   F0D9 85 06       		STA  COLUP0
+0212   F0DB A5 D7       		LDA  $D7
+0213   F0DD 85 07       		STA  COLUP1
+0214   F0DF A2 1E       B10DF	LDX  #$1E
+0215   F0E1 9A          		TXS ;			Very Sneaky - set stack to missle registers
+0216   F0E2 38          		SEC  
+0217   F0E3 A5 A4       		LDA  $A4
+0218   F0E5 E5 B4       		SBC  $B4
+0219   F0E7 29 FE       		AND  #$FE
+0220   F0E9 AA          		TAX  
+0221   F0EA 29 F0       		AND  #$F0
+0222   F0EC F0 04       		BEQ  B10F2
+0223   F0EE A9 00       		LDA  #$00
+0224   F0F0 F0 02       		BEQ  B10F4
+0225   F0F2 B5 BD       B10F2	LDA  $BD,X
+0226   F0F4 85 02       B10F4	STA  WSYNC ;		End of 1 line
+0227   F0F6 85 1B       		STA  GRP0
+0228   F0F8 A5 A7       		LDA  $A7
+0229   F0FA 45 B4       		EOR  $B4
+0230   F0FC 29 FE       		AND  #$FE
+0231   F0FE 08          		PHP ;			This turns the missle 1 on/off
+0232   F0FF A5 A6       		LDA  $A6
+0233   F101 45 B4       		EOR  $B4
+0234   F103 29 FE       		AND  #$FE
+0235   F105 08          		PHP ;			This turns the missle 0 on/off
+0236   F106 A5 B4       		LDA  $B4
+0237   F108 10 02       		BPL  B110C
+0238   F10A 49 F8       		EOR  #$F8
+0239   F10C C9 20       B110C	CMP  #$20
+0240   F10E 90 04       		BCC  B1114
+0241   F110 4A          		LSR  A
+0242   F111 4A          		LSR  A
+0243   F112 4A          		LSR  A
+0244   F113 A8          		TAY  
+0245   F114 A5 A5       B1114	LDA  $A5
+0246   F116 38          		SEC  
+0247   F117 E5 B4       		SBC  $B4
+0248   F119 E6 B4       		INC  $B4
+0249   F11B EA          		NOP  
+0250   F11C 09 01       		ORA  #$01
+0251   F11E AA          		TAX  
+0252   F11F 29 F0       		AND  #$F0
+0253   F121 F0 04       		BEQ  B1127
+0254   F123 A9 00       		LDA  #$00
+0255   F125 F0 02       		BEQ  B1129
+0256   F127 B5 BD       B1127	LDA  $BD,X
+0257   F129 24 82       B1129	BIT  $82
+0258   F12B 85 1C       		STA  GRP1
+0259   F12D 30 0C       		BMI  B113B
+0260   F12F B1 B5       		LDA  ($B5),Y
+0261   F131 85 0D       		STA  PF0
+0262   F133 B1 B7       		LDA  ($B7),Y
+0263   F135 85 0E       		STA  PF1
+0264   F137 B1 B9       		LDA  ($B9),Y
+0265   F139 85 0F       		STA  PF2
+0266   F13B E6 B4       B113B	INC  $B4
+0267   F13D A5 B4       		LDA  $B4
+0268   F13F 49 EC       		EOR  #$EC
+0269   F141 D0 9C       		BNE  B10DF
+0270   F143 A6 D3       		LDX  $D3 ;		Restore stack pointer
+0271   F145 9A          		TXS  
+0272   F146 85 1D       		STA  ENAM0
+0273   F148 85 1E       		STA  ENAM1
+0274   F14A 85 1B       		STA  GRP0
+0275   F14C 85 1C       		STA  GRP1
+0276   F14E 85 1B       		STA  GRP0
+0277   F150 85 0D       		STA  PF0
+0278   F152 85 0E       		STA  PF1
+0279   F154 85 0F       		STA  PF2
+0280   F156 60          		RTS  
+0281   F157             ;
+0282   F157             
+0283   F157 AD 82 02    J1157	LDA  SWCHB
+0284   F15A 4A          		LSR  A
+0285   F15B B0 13       		BCS  B1170
+0286   F15D A9 0F       		LDA  #$0F
+0287   F15F 85 87       		STA  $87
+0288   F161 A9 FF       		LDA  #$FF
+0289   F163 85 88       		STA  $88
+0290   F165 A9 80       		LDA  #$80
+0291   F167 85 DD       		STA  $DD
+0292   F169 A2 E6       		LDX  #$E6
+0293   F16B 20 BD F5    		JSR  ClearMemory ;		zero out $89 thru $A2
+0294   F16E F0 60       		BEQ  B11D0
+0295   F170 A0 02       B1170	LDY  #$02
+0296   F172 A5 DD       		LDA  $DD
+0297   F174 25 88       		AND  $88
+0298   F176 C9 F0       		CMP  #$F0
+0299   F178 90 08       		BCC  B1182
+0300   F17A A5 86       		LDA  $86
+0301   F17C 29 30       		AND  #$30
+0302   F17E D0 02       		BNE  B1182
+0303   F180 A0 0E       		LDY  #$0E
+0304   F182 84 DC       B1182	STY  $DC
+0305   F184 A5 86       		LDA  $86
+0306   F186 29 3F       		AND  #$3F
+0307   F188 D0 08       		BNE  B1192
+0308   F18A 85 89       		STA  $89
+0309   F18C E6 DD       		INC  $DD
+0310   F18E D0 02       		BNE  B1192
+0311   F190 85 88       		STA  $88
+0312   F192 AD 82 02    B1192	LDA  SWCHB
+0313   F195 29 02       		AND  #$02
+0314   F197 F0 04       		BEQ  B119D
+0315   F199 85 89       		STA  $89
+0316   F19B D0 54       		BNE  B11F1
+0317   F19D 24 89       B119D	BIT  $89
+0318   F19F 30 50       		BMI  B11F1
+0319   F1A1 E6 80       		INC  $80
+0320   F1A3 A2 DF       J11A3	LDX  #$DF
+0321   F1A5 20 BD F5    B11A5	JSR  ClearMemory
+0322   F1A8 A9 FF       		LDA  #$FF
+0323   F1AA 85 89       		STA  $89
+0324   F1AC A4 80       		LDY  $80
+0325   F1AE B9 D8 F7    		LDA  L17D8,Y
+0326   F1B1 85 A3       		STA  $A3
+0327   F1B3 49 FF       		EOR  #$FF
+0328   F1B5 D0 04       		BNE  B11BB
+0329   F1B7 A2 DD       		LDX  #$DD
+0330   F1B9 D0 EA       		BNE  B11A5
+0331   F1BB A5 81       B11BB	LDA  $81
+0332   F1BD F8          		SED  
+0333   F1BE 18          		CLC  
+0334   F1BF 69 01       		ADC  #$01
+0335   F1C1 85 81       		STA  $81
+0336   F1C3 85 A1       		STA  $A1
+0337   F1C5 D8          		CLD  
+0338   F1C6 24 A3       		BIT  $A3
+0339   F1C8 10 06       		BPL  B11D0
+0340   F1CA E6 85       		INC  $85
+0341   F1CC 50 02       		BVC  B11D0
+0342   F1CE E6 85       		INC  $85
+0343   F1D0 20 25 F5    B11D0	JSR  J1525
+0344   F1D3 A9 32       		LDA  #$32
+0345   F1D5 85 A5       		STA  $A5
+0346   F1D7 A9 86       		LDA  #$86
+0347   F1D9 85 A4       		STA  $A4
+0348   F1DB 24 A3       		BIT  $A3
+0349   F1DD 30 12       		BMI  B11F1
+0350   F1DF 85 A5       		STA  $A5
+0351   F1E1 85 11       		STA  RESP1
+0352   F1E3 A9 08       		LDA  #$08
+0353   F1E5 85 96       		STA  $96
+0354   F1E7 A9 20       		LDA  #$20
+0355   F1E9 85 20       		STA  HMP0
+0356   F1EB 85 21       		STA  HMP1
+0357   F1ED 85 02       		STA  WSYNC
+0358   F1EF 85 2A       		STA  HMOVE
+0359   F1F1 60          B11F1	RTS  
+0360   F1F2             ;
+0361   F1F2 A2 01       J11F2	LDX  #$01 ;		convert BCD scores to score pattern offset
+0362   F1F4 B5 A1       B11F4	LDA  $A1,X
+0363   F1F6 29 0F       		AND  #$0F
+0364   F1F8 85 D2       		STA  $D2
+0365   F1FA 0A          		ASL  A
+0366   F1FB 0A          		ASL  A
+0367   F1FC 18          		CLC  
+0368   F1FD 65 D2       		ADC  $D2
+0369   F1FF 95 E0       		STA  $E0,X
+0370   F201 B5 A1       		LDA  $A1,X
+0371   F203 29 F0       		AND  #$F0
+0372   F205 4A          		LSR  A
+0373   F206 4A          		LSR  A
+0374   F207 85 D2       		STA  $D2
+0375   F209 4A          		LSR  A
+0376   F20A 4A          		LSR  A
+0377   F20B 18          		CLC  
+0378   F20C 65 D2       		ADC  $D2
+0379   F20E 95 E2       		STA  $E2,X
+0380   F210 CA          		DEX  
+0381   F211 10 E1       		BPL  B11F4
+0382   F213 60          		RTS  
+0383   F214             ;
+0384   F214 24 83       J1214	BIT  $83
+0385   F216 50 04       		BVC  B121C
+0386   F218 A9 30       		LDA  #$30
+0387   F21A 10 02       		BPL  B121E
+0388   F21C A9 20       B121C	LDA  #$20
+0389   F21E 85 B1       B121E	STA  $B1
+0390   F220 A2 03       		LDX  #$03
+0391   F222 20 54 F2    		JSR  J1254
+0392   F225 CA          		DEX  
+0393   F226 20 54 F2    		JSR  J1254
+0394   F229 CA          		DEX  
+0395   F22A B5 8D       B122A	LDA  $8D,X
+0396   F22C 29 08       		AND  #$08
+0397   F22E 4A          		LSR  A
+0398   F22F 4A          		LSR  A
+0399   F230 86 D1       		STX  $D1
+0400   F232 18          		CLC  
+0401   F233 65 D1       		ADC  $D1
+0402   F235 A8          		TAY  
+0403   F236 B9 A8 00    		LDA  $00A8,Y
+0404   F239 38          		SEC  
+0405   F23A 30 01       		BMI  B123D
+0406   F23C 18          		CLC  
+0407   F23D 2A          B123D	ROL  A
+0408   F23E 99 A8 00    		STA  $00A8,Y
+0409   F241 90 0D       		BCC  B1250
+0410   F243 B5 AC       		LDA  $AC,X
+0411   F245 29 01       		AND  #$01
+0412   F247 0A          		ASL  A
+0413   F248 0A          		ASL  A
+0414   F249 0A          		ASL  A
+0415   F24A 0A          		ASL  A
+0416   F24B 85 B1       		STA  $B1
+0417   F24D 20 54 F2    		JSR  J1254
+0418   F250 CA          B1250	DEX  
+0419   F251 F0 D7       		BEQ  B122A
+0420   F253 60          		RTS  
+0421   F254             ;
+0422   F254 F6 AC       J1254	INC  $AC,X
+0423   F256 B5 95       		LDA  $95,X
+0424   F258 29 0F       		AND  #$0F
+0425   F25A 18          		CLC  
+0426   F25B 65 B1       		ADC  $B1
+0427   F25D A8          		TAY  
+0428   F25E B9 F7 F5    		LDA  L15F7,Y
+0429   F261 85 B0       		STA  $B0
+0430   F263 24 82       		BIT  $82
+0431   F265 70 13       		BVS  B127A
+0432   F267 B5 95       		LDA  $95,X
+0433   F269 38          		SEC  
+0434   F26A E9 02       		SBC  #$02
+0435   F26C 29 03       		AND  #$03
+0436   F26E D0 0A       		BNE  B127A
+0437   F270 B5 AC       		LDA  $AC,X
+0438   F272 29 03       		AND  #$03
+0439   F274 D0 04       		BNE  B127A
+0440   F276 A9 08       		LDA  #$08
+0441   F278 85 B0       		STA  $B0
+0442   F27A A5 B0       B127A	LDA  $B0
+0443   F27C 95 20       J127C	STA  HMP0,X
+0444   F27E 29 0F       		AND  #$0F
+0445   F280 38          		SEC  
+0446   F281 E9 08       		SBC  #$08
+0447   F283 85 D4       		STA  $D4
+0448   F285 18          		CLC  
+0449   F286 75 A4       		ADC  $A4,X
+0450   F288 24 A3       		BIT  $A3
+0451   F28A 30 04       		BMI  B1290
+0452   F28C E0 02       		CPX  #$02
+0453   F28E B0 10       		BCS  B12A0
+0454   F290 C9 DB       B1290	CMP  #$DB
+0455   F292 B0 04       		BCS  B1298
+0456   F294 C9 25       		CMP  #$25
+0457   F296 B0 08       		BCS  B12A0
+0458   F298 A9 D9       B1298	LDA  #$D9
+0459   F29A 24 D4       		BIT  $D4
+0460   F29C 30 02       		BMI  B12A0
+0461   F29E A9 28       		LDA  #$28
+0462   F2A0 95 A4       B12A0	STA  $A4,X
+0463   F2A2 E0 02       		CPX  #$02
+0464   F2A4 B0 02       		BCS  B12A8
+0465   F2A6 95 25       		STA  VDELP0,X
+0466   F2A8 60          B12A8	RTS  
+0467   F2A9             
+0468   F2A9             
+0469   F2A9             ;
+0470   F2A9 A9 01       J12A9	LDA  #$01
+0471   F2AB 25 86       		AND  $86
+0472   F2AD AA          		TAX  
+0473   F2AE B5 95       		LDA  $95,X
+0474   F2B0 95 0B       		STA  REFP0,X
+0475   F2B2 29 0F       		AND  #$0F
+0476   F2B4 A8          		TAY  
+0477   F2B5 24 83       		BIT  $83
+0478   F2B7 10 02       		BPL  B12BB
+0479   F2B9 94 97       		STY  $97,X
+0480   F2BB 8A          B12BB	TXA  
+0481   F2BC 49 0E       		EOR  #$0E
+0482   F2BE AA          		TAX  
+0483   F2BF 98          		TYA  
+0484   F2C0 0A          		ASL  A
+0485   F2C1 0A          		ASL  A
+0486   F2C2 0A          		ASL  A
+0487   F2C3 C9 3F       		CMP  #$3F
+0488   F2C5 18          		CLC  
+0489   F2C6 30 03       		BMI  B12CB
+0490   F2C8 38          		SEC  
+0491   F2C9 49 47       		EOR  #$47
+0492   F2CB A8          B12CB	TAY  
+0493   F2CC B1 BB       B12CC	LDA  ($BB),Y
+0494   F2CE 95 BD       		STA  $BD,X
+0495   F2D0 90 02       		BCC  B12D4
+0496   F2D2 88          		DEY  
+0497   F2D3 88          		DEY		 
+0498   F2D4 C8          B12D4	INY  
+0499   F2D5 CA          		DEX  
+0500   F2D6 CA          		DEX  
+0501   F2D7 10 F3       		BPL  B12CC
+0502   F2D9 60          		RTS  
+0503   F2DA             ;
+0504   F2DA A5 8A       J12DA	LDA  $8A
+0505   F2DC 38          		SEC  
+0506   F2DD E9 02       		SBC  #$02
+0507   F2DF 90 2B       		BCC  B130C
+0508   F2E1 85 8A       		STA  $8A
+0509   F2E3 C9 02       		CMP  #$02
+0510   F2E5 90 24       		BCC  B130B
+0511   F2E7 29 01       		AND  #$01
+0512   F2E9 AA          		TAX  
+0513   F2EA F6 95       		INC  $95,X
+0514   F2EC B5 D8       		LDA  $D8,X
+0515   F2EE 95 D6       		STA  $D6,X
+0516   F2F0 A5 8A       		LDA  $8A
+0517   F2F2 C9 F7       		CMP  #$F7
+0518   F2F4 90 03       		BCC  B12F9
+0519   F2F6 20 08 F5    		JSR  J1508
+0520   F2F9 A5 8A       B12F9	LDA  $8A
+0521   F2FB 10 0E       		BPL  B130B
+0522   F2FD 4A          		LSR  A
+0523   F2FE 4A          		LSR  A
+0524   F2FF 4A          		LSR  A
+0525   F300 95 19       J1300	STA  AUDV0,X
+0526   F302 A9 08       		LDA  #$08
+0527   F304 95 15       		STA  AUDC0,X
+0528   F306 BD FE F7    		LDA  L17FE,X
+0529   F309 95 17       		STA  AUDF0,X
+0530   F30B 60          B130B	RTS
+0531   F30C             ;
+0532   F30C A2 01       B130C	LDX  #$01
+0533   F30E AD 82 02    		LDA  SWCHB
+0534   F311 85 D5       		STA  $D5
+0535   F313 AD 80 02    		LDA  SWCHA
+0536   F316 24 88       B1316	BIT  $88
+0537   F318 30 02       		BMI  B131C
+0538   F31A A9 FF       		LDA  #$FF
+0539   F31C 49 FF       B131C	EOR  #$FF
+0540   F31E 29 0F       		AND  #$0F
+0541   F320 85 D2       		STA  $D2
+0542   F322 A4 85       		LDY  $85
+0543   F324 B9 0F F7    		LDA  L170F,Y
+0544   F327 18          		CLC  
+0545   F328 65 D2       		ADC  $D2
+0546   F32A A8          		TAY  
+0547   F32B B9 12 F7    		LDA  L1712,Y
+0548   F32E 29 0F       		AND  #$0F
+0549   F330 85 D1       		STA  $D1
+0550   F332 F0 04       		BEQ  B1338
+0551   F334 D5 91       		CMP  $91,X
+0552   F336 D0 04       		BNE  B133C
+0553   F338 D6 93       B1338	DEC  $93,X
+0554   F33A D0 0D       		BNE  B1349
+0555   F33C 95 91       B133C	STA  $91,X
+0556   F33E A9 0F       		LDA  #$0F
+0557   F340 95 93       		STA  $93,X
+0558   F342 A5 D1       		LDA  $D1
+0559   F344 18          		CLC  
+0560   F345 75 95       		ADC  $95,X
+0561   F347 95 95       		STA  $95,X
+0562   F349 F6 8D       B1349	INC  $8D,X
+0563   F34B 30 1E       		BMI  B136B
+0564   F34D B9 12 F7    		LDA  L1712,Y
+0565   F350 4A          		LSR  A
+0566   F351 4A          		LSR  A
+0567   F352 4A          		LSR  A
+0568   F353 4A          		LSR  A
+0569   F354 24 D5       		BIT  $D5
+0570   F356 30 23       		BMI  B137B
+0571   F358 95 8B       B1358	STA  $8B,X
+0572   F35A 0A          		ASL  A
+0573   F35B A8          		TAY  
+0574   F35C B9 37 F6    		LDA  L1637,Y
+0575   F35F 95 A8       		STA  $A8,X
+0576   F361 C8          		INY  
+0577   F362 B9 37 F6    		LDA  L1637,Y
+0578   F365 95 AA       		STA  $AA,X
+0579   F367 A9 F0       		LDA  #$F0
+0580   F369 95 8D       		STA  $8D,X
+0581   F36B 20 80 F3    B136B	JSR  J1380
+0582   F36E AD 80 02    		LDA  SWCHA
+0583   F371 4A          		LSR  A
+0584   F372 4A          		LSR  A
+0585   F373 4A          		LSR  A
+0586   F374 4A          		LSR  A
+0587   F375 06 D5       		ASL  $D5
+0588   F377 CA          		DEX  
+0589   F378 F0 9C       		BEQ  B1316
+0590   F37A 60          		RTS  
+0591   F37B             ;
+0592   F37B 38          B137B	SEC  
+0593   F37C E5 85       		SBC  $85
+0594   F37E 10 D8       		BPL  B1358
+0595   F380 A5 A3       J1380	LDA  $A3
+0596   F382 30 08       		BMI  B138C
+0597   F384 29 01       		AND  #$01
+0598   F386 F0 04       		BEQ  B138C
+0599   F388 A5 DB       		LDA  $DB
+0600   F38A 95 D6       		STA  $D6,X
+0601   F38C B5 99       B138C	LDA  $99,X
+0602   F38E F0 27       		BEQ  B13B7
+0603   F390 B5 D8       		LDA  $D8,X
+0604   F392 95 D6       		STA  $D6,X
+0605   F394 B5 99       		LDA  $99,X
+0606   F396 C9 07       		CMP  #$07
+0607   F398 90 14       		BCC  J13AE
+0608   F39A 24 D5       		BIT  $D5
+0609   F39C 10 04       		BPL  B13A2
+0610   F39E C9 1C       		CMP  #$1C
+0611   F3A0 90 0C       		BCC  J13AE
+0612   F3A2 C9 30       B13A2	CMP  #$30
+0613   F3A4 90 1F       		BCC  B13C5
+0614   F3A6 C9 37       		CMP  #$37
+0615   F3A8 B0 21       		BCS  J13CB
+0616   F3AA 24 83       		BIT  $83
+0617   F3AC 50 1D       		BVC  J13CB
+0618   F3AE A9 00       J13AE	LDA  #$00
+0619   F3B0 95 99       		STA  $99,X
+0620   F3B2 A9 FF       		LDA  #$FF
+0621   F3B4 95 28       B13B4	STA  RESMP0,X
+0622   F3B6 60          		RTS  
+0623   F3B7             ;
+0624   F3B7 24 88       B13B7	BIT  $88
+0625   F3B9 10 04       		BPL  B13BF
+0626   F3BB B5 3C       		LDA  INPT4,X
+0627   F3BD 10 37       		BPL  B13F6
+0628   F3BF 20 10 F4    B13BF	JSR  J1410
+0629   F3C2 4C AE F3    		JMP  J13AE
+0630   F3C5             ;
+0631   F3C5 20 10 F4    B13C5	JSR  J1410
+0632   F3C8 4C DE F3    		JMP  J13DE
+0633   F3CB             ;
+0634   F3CB B5 9F       J13CB	LDA  $9F,X
+0635   F3CD F0 0A       		BEQ  B13D9
+0636   F3CF 20 10 F4    		JSR  J1410
+0637   F3D2 A9 30       		LDA  #$30
+0638   F3D4 95 99       		STA  $99,X
+0639   F3D6 4C DE F3    		JMP  J13DE
+0640   F3D9             ;
+0641   F3D9 B5 99       B13D9	LDA  $99,X
+0642   F3DB 20 00 F3    		JSR  J1300
+0643   F3DE A5 86       J13DE	LDA  $86
+0644   F3E0 29 03       		AND  #$03
+0645   F3E2 F0 0C       		BEQ  B13F0
+0646   F3E4 24 84       		BIT  $84
+0647   F3E6 70 0A       		BVS  B13F2
+0648   F3E8 24 82       		BIT  $82
+0649   F3EA 50 04       		BVC  B13F0
+0650   F3EC 29 01       		AND  #$01
+0651   F3EE D0 02       		BNE  B13F2
+0652   F3F0 D6 99       B13F0	DEC  $99,X
+0653   F3F2 A9 00       B13F2	LDA  #$00
+0654   F3F4 F0 BE       		BEQ  B13B4
+0655   F3F6 A9 3F       B13F6	LDA  #$3F
+0656   F3F8 95 99       		STA  $99,X
+0657   F3FA 38          		SEC  
+0658   F3FB B5 A4       		LDA  $A4,X
+0659   F3FD E9 06       		SBC  #$06
+0660   F3FF 95 A6       		STA  $A6,X
+0661   F401 B5 95       		LDA  $95,X
+0662   F403 95 97       		STA  $97,X
+0663   F405 A9 1F       		LDA  #$1F
+0664   F407 95 9B       		STA  $9B,X
+0665   F409 A9 00       		LDA  #$00
+0666   F40B 95 9D       		STA  $9D,X
+0667   F40D 4C CB F3    		JMP  J13CB
+0668   F410             ;
+0669   F410 B5 9F       J1410	LDA  $9F,X
+0670   F412 F0 0D       		BEQ  B1421
+0671   F414 A9 04       		LDA  #$04
+0672   F416 95 15       		STA  AUDC0,X
+0673   F418 A9 07       		LDA  #$07
+0674   F41A 95 19       		STA  AUDV0,X
+0675   F41C B5 9B       		LDA  $9B,X
+0676   F41E 95 17       		STA  AUDF0,X
+0677   F420 60          		RTS  
+0678   F421             ;
+0679   F421 A4 85       B1421	LDY  $85
+0680   F423 B9 33 F7    		LDA  L1733,Y
+0681   F426 25 88       		AND  $88
+0682   F428 95 19       		STA  AUDV0,X
+0683   F42A B9 36 F7    		LDA  L1736,Y
+0684   F42D 95 15       		STA  AUDC0,X
+0685   F42F 18          		CLC  
+0686   F430 A9 00       		LDA  #$00
+0687   F432 88          B1432	DEY  
+0688   F433 30 04       		BMI  B1439
+0689   F435 69 0C       		ADC  #$0C
+0690   F437 10 F9       		BPL  B1432
+0691   F439 75 8B       B1439	ADC  $8B,X
+0692   F43B A8          		TAY  
+0693   F43C 8A          		TXA  
+0694   F43D 0A          		ASL  A
+0695   F43E 79 39 F7    		ADC  L1739,Y
+0696   F441 95 17       		STA  AUDF0,X
+0697   F443 60          		RTS  
+0698   F444             ;
+0699   F444 A2 01       J1444	LDX  #$01
+0700   F446 B5 30       J1446	LDA  CXM0P,X
+0701   F448 10 2C       		BPL  B1476
+0702   F44A 24 84       		BIT  $84
+0703   F44C 50 06       		BVC  B1454
+0704   F44E B5 9B       		LDA  $9B,X
+0705   F450 C9 1F       		CMP  #$1F
+0706   F452 F0 22       		BEQ  B1476
+0707   F454 F6 95       B1454	INC  $95,X
+0708   F456 F6 97       		INC  $97,X
+0709   F458 F8          		SED  
+0710   F459 B5 A1       		LDA  $A1,X
+0711   F45B 18          		CLC  
+0712   F45C 69 01       		ADC  #$01
+0713   F45E 95 A1       		STA  $A1,X
+0714   F460 D8          		CLD  
+0715   F461 8A          		TXA  
+0716   F462 18          		CLC  
+0717   F463 69 FD       		ADC  #$FD
+0718   F465 85 8A       		STA  $8A
+0719   F467 A9 FF       		LDA  #$FF
+0720   F469 85 28       		STA  RESMP0
+0721   F46B 85 29       		STA  RESMP1
+0722   F46D A9 00       		LDA  #$00
+0723   F46F 95 19       		STA  AUDV0,X
+0724   F471 85 99       		STA  $99
+0725   F473 85 9A       		STA  $9A
+0726   F475 60          		RTS  
+0727   F476             ;
+0728   F476 24 A3       B1476	BIT  $A3
+0729   F478 10 03       		BPL  B147D
+0730   F47A 4C 01 F5    		JMP  J1501
+0731   F47D             ;
+0732   F47D B5 9F       B147D	LDA  $9F,X
+0733   F47F F0 0A       		BEQ  B148B
+0734   F481 C9 04       		CMP  #$04
+0735   F483 F6 9F       		INC  $9F,X
+0736   F485 90 04       		BCC  B148B
+0737   F487 A9 00       		LDA  #$00
+0738   F489 95 9F       		STA  $9F,X
+0739   F48B B5 34       B148B	LDA  CXM0FB,X
+0740   F48D 30 07       		BMI  B1496
+0741   F48F A9 00       		LDA  #$00
+0742   F491 95 9D       		STA  $9D,X
+0743   F493 4C D6 F4    		JMP  J14D6
+0744   F496             ;
+0745   F496 24 82       B1496	BIT  $82
+0746   F498 50 36       		BVC  B14D0
+0747   F49A B5 9D       		LDA  $9D,X
+0748   F49C D0 19       		BNE  B14B7
+0749   F49E F6 9F       		INC  $9F,X
+0750   F4A0 D6 9B       		DEC  $9B,X
+0751   F4A2 B5 97       		LDA  $97,X
+0752   F4A4 95 B2       		STA  $B2,X
+0753   F4A6 49 FF       		EOR  #$FF
+0754   F4A8 95 97       		STA  $97,X
+0755   F4AA F6 97       		INC  $97,X
+0756   F4AC B5 97       		LDA  $97,X
+0757   F4AE 29 03       		AND  #$03
+0758   F4B0 D0 02       		BNE  B14B4
+0759   F4B2 F6 97       		INC  $97,X
+0760   F4B4 4C D4 F4    B14B4	JMP  J14D4
+0761   F4B7             ;
+0762   F4B7 C9 01       B14B7	CMP  #$01
+0763   F4B9 F0 0B       		BEQ  B14C6
+0764   F4BB C9 03       		CMP  #$03
+0765   F4BD 90 15       		BCC  J14D4
+0766   F4BF D0 13       		BNE  J14D4
+0767   F4C1 B5 B2       		LDA  $B2,X
+0768   F4C3 4C C8 F4    		JMP  J14C8
+0769   F4C6             ;
+0770   F4C6 B5 97       B14C6	LDA  $97,X
+0771   F4C8 18          J14C8	CLC  
+0772   F4C9 69 08       		ADC  #$08
+0773   F4CB 95 97       		STA  $97,X
+0774   F4CD 4C D4 F4    		JMP  J14D4
+0775   F4D0             ;
+0776   F4D0 A9 01       B14D0	LDA  #$01
+0777   F4D2 95 99       		STA  $99,X
+0778   F4D4 F6 9D       J14D4	INC  $9D,X
+0779   F4D6 B5 32       J14D6	LDA  CXP0FB,X
+0780   F4D8 30 04       		BMI  B14DE
+0781   F4DA A5 37       		LDA  CXPPMM
+0782   F4DC 10 09       		BPL  B14E7
+0783   F4DE A5 8A       B14DE	LDA  $8A
+0784   F4E0 C9 02       		CMP  #$02
+0785   F4E2 90 09       		BCC  B14ED
+0786   F4E4 20 08 F5    		JSR  J1508
+0787   F4E7 A9 03       B14E7	LDA  #$03
+0788   F4E9 95 E4       		STA  $E4,X
+0789   F4EB D0 14       		BNE  J1501
+0790   F4ED D6 E4       B14ED	DEC  $E4,X
+0791   F4EF 30 06       		BMI  B14F7
+0792   F4F1 B5 8B       		LDA  $8B,X
+0793   F4F3 F0 0C       		BEQ  J1501
+0794   F4F5 D0 02       		BNE  B14F9
+0795   F4F7 F6 95       B14F7	INC  $95,X
+0796   F4F9 B5 95       B14F9	LDA  $95,X
+0797   F4FB 18          		CLC  
+0798   F4FC 69 08       		ADC  #$08
+0799   F4FE 20 0F F5    		JSR  J150F
+0800   F501 CA          J1501	DEX  
+0801   F502 30 03       		BMI  B1507
+0802   F504 4C 46 F4    		JMP  J1446
+0803   F507 60          B1507	RTS  
+0804   F508             ;
+0805   F508 8A          J1508	TXA  
+0806   F509 49 01       		EOR  #$01
+0807   F50B A8          		TAY  
+0808   F50C B9 97 00    		LDA  $0097,Y
+0809   F50F 29 0F       J150F	AND  #$0F
+0810   F511 A8          		TAY  
+0811   F512 B9 27 F6    		LDA  L1627,Y
+0812   F515 20 7C F2    		JSR  J127C
+0813   F518 A9 00       		LDA  #$00
+0814   F51A 95 A8       		STA  $A8,X
+0815   F51C 95 AA       		STA  $AA,X
+0816   F51E 95 8D       		STA  $8D,X
+0817   F520 B5 D8       		LDA  $D8,X
+0818   F522 95 D6       		STA  $D6,X
+0819   F524 60          		RTS  
+0820   F525             
+0821   F525 A6 85       J1525	LDX  $85
+0822   F527 BD C6 F7    		LDA  L17C6,X
+0823   F52A 85 BB       		STA  $BB
+0824   F52C BD C9 F7    		LDA  L17C9,X
+0825   F52F 85 BC       		STA  $BC
+0826   F531 A5 A3       		LDA  $A3
+0827   F533 4A          		LSR  A
+0828   F534 4A          		LSR  A
+0829   F535 29 03       		AND  #$03
+0830   F537 AA          		TAX  
+0831   F538 A5 A3       		LDA  $A3
+0832   F53A 10 0A       		BPL  B1546
+0833   F53C 29 08       		AND  #$08
+0834   F53E F0 04       		BEQ  B1544
+0835   F540 A2 03       		LDX  #$03
+0836   F542 10 04       		BPL  B1548
+0837   F544 A9 80       B1544	LDA  #$80
+0838   F546 85 82       B1546	STA  $82
+0839   F548 A5 A3       B1548	LDA  $A3
+0840   F54A 0A          		ASL  A
+0841   F54B 0A          		ASL  A
+0842   F54C 24 A3       		BIT  $A3
+0843   F54E 30 06       		BMI  B1556
+0844   F550 85 02       		STA  WSYNC
+0845   F552 85 84       		STA  $84
+0846   F554 29 80       		AND  #$80
+0847   F556 85 83       B1556	STA  $83
+0848   F558 A9 F7       		LDA  #$F7
+0849   F55A 85 B6       		STA  $B6
+0850   F55C 85 B8       		STA  $B8
+0851   F55E 85 BA       		STA  $BA
+0852   F560 BD CC F7    		LDA  L17CC,X
+0853   F563 85 10       		STA  RESP0
+0854   F565 85 B5       		STA  $B5
+0855   F567 BD D0 F7    		LDA  L17D0,X
+0856   F56A 85 B7       		STA  $B7
+0857   F56C BD D4 F7    		LDA  L17D4,X
+0858   F56F 85 B9       		STA  $B9
+0859   F571 60          		RTS  
+0860   F572             ;
+0861   F572 A5 A3       J1572	LDA  $A3
+0862   F574 29 87       		AND  #$87
+0863   F576 30 02       		BMI  B157A
+0864   F578 A9 00       		LDA  #$00
+0865   F57A 0A          B157A	ASL  A
+0866   F57B AA          		TAX  
+0867   F57C BD 5D F7    		LDA  L175D,X
+0868   F57F 85 04       		STA  NUSIZ0
+0869   F581 BD 5E F7    		LDA  L175E,X
+0870   F584 85 05       		STA  NUSIZ1
+0871   F586 A5 A3       		LDA  $A3
+0872   F588 29 C0       		AND  #$C0
+0873   F58A 4A          		LSR  A
+0874   F58B 4A          		LSR  A
+0875   F58C 4A          		LSR  A
+0876   F58D 4A          		LSR  A
+0877   F58E A8          		TAY  
+0878   F58F A5 88       		LDA  $88
+0879   F591 8D 82 02    		STA  SWCHB
+0880   F594 49 FF       		EOR  #$FF
+0881   F596 25 DD       		AND  $DD
+0882   F598 85 D1       		STA  $D1
+0883   F59A A2 FF       		LDX  #$FF
+0884   F59C AD 82 02    		LDA  SWCHB
+0885   F59F 29 08       		AND  #$08
+0886   F5A1 D0 04       		BNE  B15A7
+0887   F5A3 A0 10       		LDY  #$10
+0888   F5A5 A2 0F       		LDX  #$0F
+0889   F5A7 86 D2       B15A7	STX  $D2
+0890   F5A9 A2 03       		LDX  #$03
+0891   F5AB B9 65 F7    B15AB	LDA  L1765,Y
+0892   F5AE 45 D1       		EOR  $D1
+0893   F5B0 25 D2       		AND  $D2
+0894   F5B2 95 06       		STA  COLUP0,X
+0895   F5B4 95 D6       		STA  $D6,X
+0896   F5B6 95 D8       		STA  $D8,X
+0897   F5B8 C8          		INY  
+0898   F5B9 CA          		DEX  
+0899   F5BA 10 EF       		BPL  B15AB
+0900   F5BC 60          		RTS  
+0901   F5BD             
+0902   F5BD             ;==============================================================
+0903   F5BD             ; Clear $A2[X++] until X==0
+0904   F5BD             ;
+0905   F5BD             ClearMemory
+0906   F5BD             ;
+0907   F5BD A9 00       		LDA  #$00
+0908   F5BF E8          CLRM01	INX  
+0909   F5C0 95 A2       		STA  $A2,X
+0910   F5C2 D0 FB       		BNE  CLRM01
+0911   F5C4 60          		RTS  
+0912   F5C5             ;==============================================================
+0913   F5C5             
+0914   F5C5             ; Patterns for numbers
+0915   F5C5             ;
+0916   F5C5             L15C5	
+0917   F5C5 0E0A0A0A0E      .BYTE  $0E ,$0A ,$0A ,$0A ,$0E ; 00 
+0918   F5CA             ;  ....***.
+0919   F5CA             ;  ....*.*.
+0920   F5CA             ;  ....*.*.
+0921   F5CA             ;  ....*.*.
+0922   F5CA             ;  ....***.
+0923   F5CA             
+0924   F5CA 2222222222  	.BYTE  $22 ,$22 ,$22 ,$22 ,$22 ; 11
+0925   F5CF             ; ..*...*.
+0926   F5CF             ; ..*...*.
+0927   F5CF             ; ..*...*.
+0928   F5CF             ; ..*...*.
+0929   F5CF             ; ..*...*.
+0930   F5CF             
+0931   F5CF EE22EE88EE  	.BYTE  $EE ,$22 ,$EE ,$88 ,$EE ; 22
+0932   F5D4             ; ***.***.
+0933   F5D4             ; ..*...*.
+0934   F5D4             ; ***.***.
+0935   F5D4             ; *...*...
+0936   F5D4             ; ***.***.
+0937   F5D4             
+0938   F5D4 EE226622EE  	.BYTE  $EE ,$22 ,$66 ,$22 ,$EE ; 33
+0939   F5D9             ; ***.***.
+0940   F5D9             ; ..*...*.
+0941   F5D9             ; .**..**.
+0942   F5D9             ; ..*...*.
+0943   F5D9             ; ***.***.
+0944   F5D9             
+0945   F5D9 AAAAEE2222  	.BYTE  $AA ,$AA ,$EE ,$22 ,$22 ; 44
+0946   F5DE             ; *.*.*.*.
+0947   F5DE             ; *.*.*.*.
+0948   F5DE             ; ***.***.
+0949   F5DE             ; ..*...*.
+0950   F5DE             ; ..*...*.
+0951   F5DE             
+0952   F5DE EE88EE22EE  	.BYTE  $EE ,$88 ,$EE ,$22 ,$EE ; 55
+0953   F5E3             ; ***.***.
+0954   F5E3             ; *...*...
+0955   F5E3             ; ***.***.
+0956   F5E3             ; ..*...*.
+0957   F5E3             ; ***.***.
+0958   F5E3             
+0959   F5E3 EE88EEAAEE  	.BYTE  $EE ,$88 ,$EE ,$AA ,$EE ; 66
+0960   F5E8             ; ***.***.
+0961   F5E8             ; *...*...
+0962   F5E8             ; ***.***.
+0963   F5E8             ; *.*.*.*.
+0964   F5E8             ; ***.***.
+0965   F5E8             
+0966   F5E8 EE22222222  	.BYTE  $EE ,$22 ,$22 ,$22 ,$22 ; 77
+0967   F5ED             ; ***.***.
+0968   F5ED             ; ..*...*.
+0969   F5ED             ; ..*...*.
+0970   F5ED             ; ..*...*.
+0971   F5ED             ; ..*...*.
+0972   F5ED             
+0973   F5ED EEAAEEAAEE  	.BYTE  $EE ,$AA ,$EE ,$AA ,$EE ; 88
+0974   F5F2             ; ***.***.
+0975   F5F2             ; *.*.*.*.
+0976   F5F2             ; ***.***.
+0977   F5F2             ; *.*.*.*.
+0978   F5F2             ; ***.***.
+0979   F5F2             
+0980   F5F2 EEAAEE22EE  	.BYTE  $EE ,$AA ,$EE ,$22 ,$EE ; 99
+0981   F5F7             ; ***.***.
+0982   F5F7             ; *.*.*.*.
+0983   F5F7             ; ***.***.
+0984   F5F7             ; ..*...*.
+0985   F5F7             ; ***.***.
+0986   F5F7             
+0987   F5F7             L15F7	
+0988   F5F7 F8F7F60606      .BYTE  $F8 ,$F7 ,$F6 ,$06 ,$06
+0989   F5FC 06 16 17 18 	.BYTE  $06 ,$16 ,$17 ,$18 ;	$15FC
+0990   F600 19 1A 0A 0A 	.BYTE  $19 ,$1A ,$0A ,$0A ;	$1600
+0991   F604 0A FA F9 F8 	.BYTE  $0A ,$FA ,$F9 ,$F8 ;	$1604
+0992   F608 F7 F6 F6 06 	.BYTE  $F7 ,$F6 ,$F6 ,$06 ;	$1608
+0993   F60C 16 16 17 18 	.BYTE  $16 ,$16 ,$17 ,$18 ;	$160C
+0994   F610 19 1A 1A 0A 	.BYTE  $19 ,$1A ,$1A ,$0A ;	$1610
+0995   F614 FA FA F9 E8 	.BYTE  $FA ,$FA ,$F9 ,$E8 ;	$1614
+0996   F618 E6 E4 F4 04 	.BYTE  $E6 ,$E4 ,$F4 ,$04 ;	$1618
+0997   F61C 14 24 26 28 	.BYTE  $14 ,$24 ,$26 ,$28 ;	$161C
+0998   F620 2A 2C 1C 0C 	.BYTE  $2A ,$2C ,$1C ,$0C ;	$1620
+0999   F624 FC EC EA    	.BYTE  $FC ,$EC ,$EA ;		$1624
+1000   F627             ;
+1001   F627             L1627	
+1002   F627 C8C4C0E000      .BYTE  $C8 ,$C4 ,$C0 ,$E0 ,$00
+1003   F62C 20 40 44 48 	.BYTE  $20 ,$40 ,$44 ,$48
+1004   F630 4C 4F 2F 0F 	.BYTE  $4C ,$4F ,$2F ,$0F
+1005   F634 EF CF CC    	.BYTE  $EF ,$CF ,$CC
+1006   F637             ;
+1007   F637             L1637	
+1008   F637 000080808420        .BYTE $0, $0, $80, $80, $84, $20, $88, $88
+1008   F63D 8888
+1009   F63F             ; ........
+1010   F63F             ; ........
+1011   F63F             ; *.......
+1012   F63F             ; *.......
+1013   F63F             ; *....*..
+1014   F63F             ; ..*.....
+1015   F63F             ; *...*...
+1016   F63F             ; *...*...
+1017   F63F 9248A4A4A952    .BYTE $92, $48, $a4, $a4, $a9, $52, $aa, $aa
+1017   F645 AAAA
+1018   F647             ; *..*..*.
+1019   F647             ; .*..*...
+1020   F647             ; *.*..*..
+1021   F647             ; *.*..*..
+1022   F647             ; *.*.*..*
+1023   F647             ; .*.*..*.
+1024   F647             ; *.*.*.*.
+1025   F647             ; *.*.*.*.
+1026   F647 D5AADADADB6D    .BYTE $d5, $aa, $da, $da, $db, $6d, $ee, $ee
+1026   F64D EEEE
+1027   F64F             ; **.*.*.*
+1028   F64F             ; *.*.*.*.
+1029   F64F             ; **.**.*.
+1030   F64F             ; **.**.*.
+1031   F64F             ; **.**.**
+1032   F64F             ; .**.**.*
+1033   F64F             ; ***.***.
+1034   F64F             ; ***.***.
+1035   F64F             
+1036   F64F 00FCFC383F38    .BYTE $0, $fc, $fc, $38, $3f, $38, $fc, $fc
+1036   F655 FCFC
+1037   F657             ; ........
+1038   F657             ; ******..
+1039   F657             ; ******..
+1040   F657             ; ..***...
+1041   F657             ; ..******
+1042   F657             ; ..***...
+1043   F657             ; ******..
+1044   F657             ; ******..
+1045   F657 1C78FB7C1C1F    .BYTE $1c, $78, $fb, $7c, $1c, $1f, $3e, $18
+1045   F65D 3E18
+1046   F65F             ; ...***..
+1047   F65F             ; .****...
+1048   F65F             ; *****.**
+1049   F65F             ; .*****..
+1050   F65F             ; ...***..
+1051   F65F             ; ...*****
+1052   F65F             ; ..*****.
+1053   F65F             ; ...**...
+1054   F65F 193A7CFFDF0E    .BYTE $19, $3a, $7c, $ff, $df, $e, $1c, $18
+1054   F665 1C18
+1055   F667             ; ...**..*
+1056   F667             ; ..***.*.
+1057   F667             ; .*****..
+1058   F667             ; ********
+1059   F667             ; **.*****
+1060   F667             ; ....***.
+1061   F667             ; ...***..
+1062   F667             ; ...**...
+1063   F667 246479FFFF4E    .BYTE $24, $64, $79, $ff, $ff, $4e, $e, $4
+1063   F66D 0E04
+1064   F66F             ; ..*..*..
+1065   F66F             ; .**..*..
+1066   F66F             ; .****..*
+1067   F66F             ; ********
+1068   F66F             ; ********
+1069   F66F             ; .*..***.
+1070   F66F             ; ....***.
+1071   F66F             ; .....*..
+1072   F66F 08086B7F7F7F    .BYTE $8, $8, $6b, $7f, $7f, $7f, $63, $63
+1072   F675 6363
+1073   F677             ; ....*...
+1074   F677             ; ....*...
+1075   F677             ; .**.*.**
+1076   F677             ; .*******
+1077   F677             ; .*******
+1078   F677             ; .*******
+1079   F677             ; .**...**
+1080   F677             ; .**...**
+1081   F677 24269EFFFF72    .BYTE $24, $26, $9e, $ff, $ff, $72, $70, $20
+1081   F67D 7020
+1082   F67F             ; ..*..*..
+1083   F67F             ; ..*..**.
+1084   F67F             ; *..****.
+1085   F67F             ; ********
+1086   F67F             ; ********
+1087   F67F             ; .***..*.
+1088   F67F             ; .***....
+1089   F67F             ; ..*.....
+1090   F67F 985C3EFFFB70    .BYTE $98, $5c, $3e, $ff, $fb, $70, $38, $18
+1090   F685 3818
+1091   F687             ; *..**...
+1092   F687             ; .*.***..
+1093   F687             ; ..*****.
+1094   F687             ; ********
+1095   F687             ; *****.**
+1096   F687             ; .***....
+1097   F687             ; ..***...
+1098   F687             ; ...**...
+1099   F687 381EDF3E38F8    .BYTE $38, $1e, $df, $3e, $38, $f8, $7c, $18
+1099   F68D 7C18
+1100   F68F             ; ..***...
+1101   F68F             ; ...****.
+1102   F68F             ; **.*****
+1103   F68F             ; ..*****.
+1104   F68F             ; ..***...
+1105   F68F             ; *****...
+1106   F68F             ; .*****..
+1107   F68F             ; ...**...
+1108   F68F             
+1109   F68F 607078FF7870    .BYTE $60, $70, $78, $ff, $78, $70, $60, $0
+1109   F695 6000
+1110   F697             ; .**.....
+1111   F697             ; .***....
+1112   F697             ; .****...
+1113   F697             ; ********
+1114   F697             ; .****...
+1115   F697             ; .***....
+1116   F697             ; .**.....
+1117   F697             ; ........
+1118   F697 00C1FE7C7830    .BYTE $0, $c1, $fe, $7c, $78, $30, $30, $30
+1118   F69D 3030
+1119   F69F             ; ........
+1120   F69F             ; **.....*
+1121   F69F             ; *******.
+1122   F69F             ; .*****..
+1123   F69F             ; .****...
+1124   F69F             ; ..**....
+1125   F69F             ; ..**....
+1126   F69F             ; ..**....
+1127   F69F 000306FCFC3C    .BYTE $0, $3, $6, $fc, $fc, $3c, $c, $c
+1127   F6A5 0C0C
+1128   F6A7             ; ........
+1129   F6A7             ; ......**
+1130   F6A7             ; .....**.
+1131   F6A7             ; ******..
+1132   F6A7             ; ******..
+1133   F6A7             ; ..****..
+1134   F6A7             ; ....**..
+1135   F6A7             ; ....**..
+1136   F6A7 02040C1CFCFC    .BYTE $2, $4, $c, $1c, $fc, $fc, $1e, $6
+1136   F6AD 1E06
+1137   F6AF             ; ......*.
+1138   F6AF             ; .....*..
+1139   F6AF             ; ....**..
+1140   F6AF             ; ...***..
+1141   F6AF             ; ******..
+1142   F6AF             ; ******..
+1143   F6AF             ; ...****.
+1144   F6AF             ; .....**.
+1145   F6AF 101010387CFE    .BYTE $10, $10, $10, $38, $7c, $fe, $fe, $10
+1145   F6B5 FE10
+1146   F6B7             ; ...*....
+1147   F6B7             ; ...*....
+1148   F6B7             ; ...*....
+1149   F6B7             ; ..***...
+1150   F6B7             ; .*****..
+1151   F6B7             ; *******.
+1152   F6B7             ; *******.
+1153   F6B7             ; ...*....
+1154   F6B7 402030383F3F    .BYTE $40, $20, $30, $38, $3f, $3f, $78, $60
+1154   F6BD 7860
+1155   F6BF             ; .*......
+1156   F6BF             ; ..*.....
+1157   F6BF             ; ..**....
+1158   F6BF             ; ..***...
+1159   F6BF             ; ..******
+1160   F6BF             ; ..******
+1161   F6BF             ; .****...
+1162   F6BF             ; .**.....
+1163   F6BF 40603F1F1E1E    .BYTE $40, $60, $3f, $1f, $1e, $1e, $18, $18
+1163   F6C5 1818
+1164   F6C7             ; .*......
+1165   F6C7             ; .**.....
+1166   F6C7             ; ..******
+1167   F6C7             ; ...*****
+1168   F6C7             ; ...****.
+1169   F6C7             ; ...****.
+1170   F6C7             ; ...**...
+1171   F6C7             ; ...**...
+1172   F6C7 00837F3E1E0C    .BYTE $0, $83, $7f, $3e, $1e, $c, $c, $c
+1172   F6CD 0C0C
+1173   F6CF             ; ........
+1174   F6CF             ; *.....**
+1175   F6CF             ; .*******
+1176   F6CF             ; ..*****.
+1177   F6CF             ; ...****.
+1178   F6CF             ; ....**..
+1179   F6CF             ; ....**..
+1180   F6CF             ; ....**..
+1181   F6CF             
+1182   F6CF 008E84FFFF04    .BYTE $0, $8e, $84, $ff, $ff, $4, $e, $0
+1182   F6D5 0E00
+1183   F6D7             ; ........
+1184   F6D7             ; *...***.
+1185   F6D7             ; *....*..
+1186   F6D7             ; ********
+1187   F6D7             ; ********
+1188   F6D7             ; .....*..
+1189   F6D7             ; ....***.
+1190   F6D7             ; ........
+1191   F6D7 000E048F7F72    .BYTE $0, $e, $4, $8f, $7f, $72, $7, $0
+1191   F6DD 0700
+1192   F6DF             ; ........
+1193   F6DF             ; ....***.
+1194   F6DF             ; .....*..
+1195   F6DF             ; *...****
+1196   F6DF             ; .*******
+1197   F6DF             ; .***..*.
+1198   F6DF             ; .....***
+1199   F6DF             ; ........
+1200   F6DF 10362E0C1FB2    .BYTE $10, $36, $2e, $c, $1f, $b2, $e0, $40
+1200   F6E5 E040
+1201   F6E7             ; ...*....
+1202   F6E7             ; ..**.**.
+1203   F6E7             ; ..*.***.
+1204   F6E7             ; ....**..
+1205   F6E7             ; ...*****
+1206   F6E7             ; *.**..*.
+1207   F6E7             ; ***.....
+1208   F6E7             ; .*......
+1209   F6E7 242C5D1A1A30    .BYTE $24, $2c, $5d, $1a, $1a, $30, $f0, $60
+1209   F6ED F060
+1210   F6EF             ; ..*..*..
+1211   F6EF             ; ..*.**..
+1212   F6EF             ; .*.***.*
+1213   F6EF             ; ...**.*.
+1214   F6EF             ; ...**.*.
+1215   F6EF             ; ..**....
+1216   F6EF             ; ****....
+1217   F6EF             ; .**.....
+1218   F6EF 185A7E5A1818    .BYTE $18, $5a, $7e, $5a, $18, $18, $18, $78
+1218   F6F5 1878
+1219   F6F7             ; ...**...
+1220   F6F7             ; .*.**.*.
+1221   F6F7             ; .******.
+1222   F6F7             ; .*.**.*.
+1223   F6F7             ; ...**...
+1224   F6F7             ; ...**...
+1225   F6F7             ; ...**...
+1226   F6F7             ; .****...
+1227   F6F7 34365A782C0C    .BYTE $34, $36, $5a, $78, $2c, $c, $6, $c
+1227   F6FD 060C
+1228   F6FF             ; ..**.*..
+1229   F6FF             ; ..**.**.
+1230   F6FF             ; .*.**.*.
+1231   F6FF             ; .****...
+1232   F6FF             ; ..*.**..
+1233   F6FF             ; ....**..
+1234   F6FF             ; .....**.
+1235   F6FF             ; ....**..
+1236   F6FF 086C70B8DC4E    .BYTE $8, $6c, $70, $b8, $dc, $4e, $7, $6
+1236   F705 0706
+1237   F707             ; ....*...
+1238   F707             ; .**.**..
+1239   F707             ; .***....
+1240   F707             ; *.***...
+1241   F707             ; **.***..
+1242   F707             ; .*..***.
+1243   F707             ; .....***
+1244   F707             ; .....**.
+1245   F707 3810F07C4FE3    .BYTE $38, $10, $f0, $7c, $4f, $e3, $2, $0
+1245   F70D 0200
+1246   F70F             ; ..***...
+1247   F70F             ; ...*....
+1248   F70F             ; ****....
+1249   F70F             ; .*****..
+1250   F70F             ; .*..****
+1251   F70F             ; ***...**
+1252   F70F             ; ......*.
+1253   F70F             ; ........
+1254   F70F             
+1255   F70F             
+1256   F70F 00 0B 16    L170F	.BYTE  $00 ,$0B ,$16
+1257   F712 00 10       L1712	.BYTE  $00 ,$10
+1258   F714 00 FF 01 11 		.BYTE  $00 ,$FF ,$01 ,$11 ;	$1714
+1259   F718 01 FF 0F 1F 		.BYTE  $01 ,$FF ,$0F ,$1F ;	$1718
+1260   F71C 0F 50 5F 51 		.BYTE  $0F ,$50 ,$5F ,$51 ;	$171C
+1261   F720 FF 30 3F 31 		.BYTE  $FF ,$30 ,$3F ,$31 ;	$1720
+1262   F724 FF 70 7F 71 		.BYTE  $FF ,$70 ,$7F ,$71 ;	$1724
+1263   F728 90 B0 70 FF 		.BYTE  $90 ,$B0 ,$70 ,$FF ;	$1728
+1264   F72C 91 B1 71 FF 		.BYTE  $91 ,$B1 ,$71 ,$FF ;	$172C
+1265   F730 9F BF 7F    		.BYTE  $9F ,$BF ,$7F ;		$1730
+1266   F733             
+1267   F733 08 02 02    L1733	.BYTE  $08 ,$02 ,$02 ;		sound volumes
+1268   F736 02 03 08    L1736	.BYTE  $02 ,$03 ,$08 ;		sound types
+1269   F739 1D 05 00    L1739	.BYTE  $1D ,$05 ,$00 ;		sound pitches
+1270   F73C 00 00 00 00 		.BYTE  $00 ,$00 ,$00 ,$00 ;	$173C
+1271   F740 00 00 00 00 		.BYTE  $00 ,$00 ,$00 ,$00 ;	$1740
+1272   F744 00 00 00 1D 		.BYTE  $00 ,$00 ,$00 ,$1D ;	$1744
+1273   F748 1D 16 16 0F 		.BYTE  $1D ,$16 ,$16 ,$0F ;	$1748
+1274   F74C 0F 00 00 00 		.BYTE  $0F ,$00 ,$00 ,$00 ;	$174C
+1275   F750 00 00 00 00 		.BYTE  $00 ,$00 ,$00 ,$00 ;	$1750
+1276   F754 00 00 12 10 		.BYTE  $00 ,$00 ,$12 ,$10 ;	$1754
+1277   F758 100C0C0707  		.BYTE  $10 ,$0C ,$0C ,$07 ,$07 ;	$1758
+1278   F75D             ;
+1279   F75D 00          L175D	.BYTE  $00
+1280   F75E 00 01       L175E	.BYTE  $00 ,$01
+1281   F760 0100032703  		.BYTE  $01 ,$00 ,$03 ,$27 ,$03
+1282   F765             ;
+1283   F765 EA 3C 82    L1765	.BYTE  $EA ,$3C ,$82
+1284   F768 44 32 2C 8A 		.BYTE  $44 ,$32 ,$2C ,$8A ;	$1768
+1285   F76C DA 80 9C DA 		.BYTE  $DA ,$80 ,$9C ,$DA ;	$176C
+1286   F770 3A 64 A8 DA 		.BYTE  $3A ,$64 ,$A8 ,$DA ;	$1770
+1287   F774 4A 08 04 00 		.BYTE  $4A ,$08 ,$04 ,$00 ;	$1774
+1288   F778 0E F0 10 10 		.BYTE  $0E ,$F0 ,$10 ,$10 ;	$1778
+1289   F77C 10 10 10 10 		.BYTE  $10 ,$10 ,$10 ,$10 ;	$177C
+1290   F780 10 10 10 10 		.BYTE  $10 ,$10 ,$10 ,$10 ;	$1780
+1291   F784 10 FF 00 00 		.BYTE  $10 ,$FF ,$00 ,$00 ;	$1784
+1292   F788 00 38 00 00 		.BYTE  $00 ,$38 ,$00 ,$00 ;	$1788
+1293   F78C 00 60 20 20 		.BYTE  $00 ,$60 ,$20 ,$20 ;	$178C
+1294   F790 23 FF 80 80 		.BYTE  $23 ,$FF ,$80 ,$80 ;	$1790
+1295   F794 00 00 00 1C 		.BYTE  $00 ,$00 ,$00 ,$1C ;	$1794
+1296   F798 04 00 00 00 		.BYTE  $04 ,$00 ,$00 ,$00 ;	$1798
+1297   F79C 00 FF 00 00 		.BYTE  $00 ,$FF ,$00 ,$00 ;	$179C
+1298   F7A0 00 00 00 00 		.BYTE  $00 ,$00 ,$00 ,$00 ;	$17A0
+1299   F7A4 00 00 00 00 		.BYTE  $00 ,$00 ,$00 ,$00 ;	$17A4
+1300   F7A8 00 00 07 1F 		.BYTE  $00 ,$00 ,$07 ,$1F ;	$17A8
+1301   F7AC 3F 7F FF 00 		.BYTE  $3F ,$7F ,$FF ,$00 ;	$17AC
+1302   F7B0 00 00 00 00 		.BYTE  $00 ,$00 ,$00 ,$00 ;	$17B0
+1303   F7B4 00 00 00 60 		.BYTE  $00 ,$00 ,$00 ,$60 ;	$17B4
+1304   F7B8 20 21 FF 00 		.BYTE  $20 ,$21 ,$FF ,$00 ;	$17B8
+1305   F7BC 00 00 80 80 		.BYTE  $00 ,$00 ,$80 ,$80 ;	$17BC
+1306   F7C0 80 80 00 00 		.BYTE  $80 ,$80 ,$00 ,$00 ;	$17C0
+1307   F7C4 00 07       		.BYTE  $00 ,$07
+1308   F7C6             ;
+1309   F7C6 4F CF 8F    L17C6	.BYTE  $4F ,$CF ,$8F
+1310   F7C9 F6 F6 F6    L17C9	.BYTE  $F6 ,$F6 ,$F6
+1311   F7CC 75 75 75 9A L17CC	.BYTE  $75 ,$75 ,$75 ,$9A
+1312   F7D0 81 99 AA 9D L17D0	.BYTE  $81 ,$99 ,$AA ,$9D
+1313   F7D4 8D 99 B6 9D L17D4	.BYTE  $8D ,$99 ,$B6 ,$9D
+1314   F7D8 24 28 08 20 L17D8	.BYTE  $24 ,$28 ,$08 ,$20
+1315   F7DC 00 48 40 54 		.BYTE  $00 ,$48 ,$40 ,$54 ;	$17DC
+1316   F7E0 58 25 29 49 		.BYTE  $58 ,$25 ,$29 ,$49 ;	$17E0
+1317   F7E4 55 59 A8 88 		.BYTE  $55 ,$59 ,$A8 ,$88 ;	$17E4
+1318   F7E8 98 90 A1 83 		.BYTE  $98 ,$90 ,$A1 ,$83 ;	$17E8
+1319   F7EC E8 C8 E0 C0 		.BYTE  $E8 ,$C8 ,$E0 ,$C0 ;	$17EC
+1320   F7F0 E9 E2 C1 FF 		.BYTE  $E9 ,$E2 ,$C1 ,$FF ;	$17F0
+1321   F7F4 00 00 00 00 		.BYTE  $00 ,$00 ,$00 ,$00 ;	$17F4
+1322   F7F8 00 00       		.BYTE  $00 ,$00
+1323   F7FA             
+1324   F7FA 00 00       		.WORD  $0000 ;		NMI
+1325   F7FC 00 F0       		.WORD  $F000 ;		Reset
+1326   F7FE             
+1327   F7FE 0F 11       L17FE  .BYTE  $0F, $11 ;	IRQ - (used as pitch for sound generator)
+1328   F800             
+1329   F800             .end
+tasm: Number of errors = 0

@@ -1,0 +1,3533 @@
+        .org 0
+
+; Space Invaders (8080 code as if Z80)
+; Disassembly by Chris Cantrell 2007
+
+; build-command tasm -b -t8580 invaders.asm invaders.bin
+; build-command java EpromTool -split invaders.bin invaders.h invaders.g invaders.f invaders.e
+; build-command jar -cf \mame\roms\invaders.zip invaders.h invaders.g invaders.f invaders.e
+
+
+; These are the ROMs on the board. The letter-extensions refer
+; to labels for chip rows on the silk screen.
+
+; invaders.h 0000-07FF
+; invaders.g 0800-0FFF
+; invaders.f 1000-17FF
+; invaders.e 1800-1FFF
+
+; Memory Map
+; 0000-1FFF   8K ROM
+; 2000-23FF   1K RAM
+; 2400-3FFF   7K Video RAM
+
+;I/O ports:
+;read:
+;00        INPUTS (Mapped but never used by the code)
+;01        INPUTS
+;02        INPUTS
+;03        bit shift register read
+;write:
+;02        shift amount (3 bits)
+;03        sound bits
+;04        shift data
+;05        sound bits
+;06        watch-dog
+;07        * See below
+
+; Dedicated shift hardware goes like this:
+; Write LSB of 16bit value to port 4
+; Write MSB of 16bit value to port 4
+; Write left-shift-amount to port 2
+; Read port 3 returns the upper byte of the 16bit value
+; after it has been shifted left N bits ? Could the upper bit be 
+; the sign ... left/right? TOPHER test this.
+
+;IN port details
+;Port 0
+;   bit 0 DIP4 (Cocktail???)
+;   bit 1 Always 1
+;   bit 2 Always 1
+;   bit 3 Always 1
+;   bit 4 Fire
+;   bit 5 Left
+;   bit 6 Right
+;   bit 7 * See below
+;Port 1
+;   bit 0 = CREDIT (1 if deposit)
+;   bit 1 = 2P start (1 if pressed)
+;   bit 2 = 1P start (1 if pressed)
+;   bit 3 = Always 1
+;   bit 4 = 1P shot (1 if pressed)
+;   bit 5 = 1P left (1 if pressed)
+;   bit 6 = 1P right (1 if pressed)
+;   bit 7 = Not connected
+;Port 2
+;   bit 0 = DIP3 00 = 3 ships  10 = 5 ships
+;   bit 1 = DIP5 01 = 4 ships  11 = 6 ships
+;   bit 2 = Tilt
+;   bit 3 = DIP6 0 = extra ship at 1500, 1 = extra ship at 1000
+;   bit 4 = P2 shot (1 if pressed)
+;   bit 5 = P2 left (1 if pressed)
+;   bit 6 = P2 right (1 if pressed)
+;   bit 7 = DIP7 Coin info displayed in demo screen
+; Port 3
+;   bit0-7 Shift register data
+
+; OUT port details
+;Port 2:
+;  bit 0,1,2 Shift amount
+;Port 3:
+;  bit 0=UFO (repeats)        SX0 0.raw
+;  bit 1=Shot                 SX1 1.raw
+;  bit 2=Flash (player die)   SX2 2.raw
+;  bit 3=Invader die          SX3 3.raw
+;  bit 4=Extended play        SX4
+;  bit 5= AMP enable          SX5
+;  bit 6= NC (not wired)
+;  bit 7= NC (not wired)
+;Port 4:
+;  bit 0-7 shift data (LSB on 1st write, MSB on 2nd)
+;Port 5:
+;  bit 0=Fleet movement 1     SX6 4.raw
+;  bit 1=Fleet movement 2     SX7 5.raw
+;  bit 2=Fleet movement 3     SX8 6.raw
+;  bit 3=Fleet movement 4     SX9 7.raw
+;  bit 4=UFO Hit              SX10 8.raw
+;  bit 5= NC
+;  bit 6= NC (not wired)
+;  bit 7= NC (not wired)
+;
+; * The decode for PORT7 is tied to the upper bit of port 0. This is
+;   strange since the PORTx pins do not assert unless there is
+;   a write ... and even then PORT7 wouldn't be active on accessing
+;   port 0. More reasearch here ...
+;   
+;Port 6:
+;  Watchdog ... read or write to reset
+
+RAM_IsTilt           .equ   $209A  ; 1=handling tilt, 0=OK
+RAM_NumCredits       .equ   $20EB  ; 99 is the max
+RAM_SoundPortValue   .equ   $2094  ; Current value written to PORT-3
+RAM_GPCounter        .equ   $20C0  ; Decremented in ISR ... used for timing
+RAM_ActivePlayer     .equ   $2067  ; 0 (TOPHER player 1?) or 1 (TOPHER player 2?)
+
+RAM_ScoreDscP1       .equ   $20f8  ; 4 bytes (TOPHER which is really P1?)
+RAM_ScoreDscP2       .equ   $20fc  ; 4 bytes ... TOPHER what do they mean>
+
+;=RST 0 (RESET) ===================================================
+        nop     	; Interesting. Why waste the ...
+        nop     	; ... CPU cycles with NOPs ? ...
+        nop     	; ... Slow hardware?
+        jp      START	; Continue
+        nop             ; Gap before next 8-byte RST slot
+        nop             ; Gap before next 8-byte RST slot
+
+;=RST 1============================================================
+; Clock comes here?
+        push    af	; Save ...
+        push    bc	; ... everything
+        push    de	; '
+        push    hl	; '
+        jp      $L008C	; Continue clock handling
+        nop             ; Gap before next 8-byte RST slot
+
+;=RST 2============================================================
+; Clock comes here?
+L0010:  push    af		; Save ...
+        push    bc		; ... everything
+        push    de		; '
+        push    hl		; '
+        ld      a,$80
+        ld      ($2072),a
+        ld      hl,RAM_GPCounter	; General counter
+        dec     (hl)		; Decrement
+        call    $L17CD
+        in      a,($01)	        ; Read port 1
+        rrca    		; Bit0 into carry
+        jp      c,$L0067	        ; Coin deposited ... handle it
+        ld      a,($20ea)	; Credit need ...
+        and     a		; ... registering?
+        jp      z,$L0042	; No
+;
+; Handle bumping credit count
+;
+        ld      a,(RAM_NumCredits)	; Number of credits
+        cp      $99		; 99 credits already?
+        jp      z,$L003E	; Yes ... ignore this
+        add     a,$01		; Bump number of credits
+        daa     		; Make it decimal coded
+        ld      (RAM_NumCredits),a	; New number of credits
+        call    $L1947		; Draw credits on screen
+L003E:  xor     a		; Marke credit ...
+L003F:  ld      ($20ea),a	; ... as handled
+L0042:  ld      a,($20e9)	; Do we know about the ...
+        and     a		; ... player standing there?
+        jp      z,$L0082	        ; Yes ... restore registers and out
+        ld      a,($20ef)
+        and     a
+        jp      nz,$L006F
+        ld      a,(RAM_NumCredits)
+        and     a
+        jp      nz,$L005D
+        call    $L0ABF
+        jp      $L0082		; Restore registers and out
+L005D:  ld      a,($2093)
+        and     a
+        jp      nz,$L0082	; Restore registers and out
+        jp      $L0765		; Begin the start-button wait loop
+;
+; Mark credit as needing registering
+L0067:  ld      a,$01		; Mark credit ...
+        ld      ($20ea),a	; ... as needing registering
+        jp      $L003F		; Go register it
+;
+L006F:  call    $L1740
+L0072:  ld      a,($2032)
+        ld      ($2080),a
+        call    $L0100          ; Draw Aliens
+        call    $L0248
+        call    $L0913
+        nop     		; Why are we waiting?
+;
+L0082:  pop     hl		; Restore ...
+        pop     de		; ... everything
+        pop     bc		; '
+        pop     af		; '
+        ei      		; Enable interrupts
+        ret   			; Return from interrupt
+
+
+        nop
+        nop
+        nop
+        nop
+
+
+;=============================================================
+; Clock interrupt
+L008C:  xor     a
+        ld      ($2072),a
+        ld      a,($20e9)
+        and     a
+        jp      z,$L0082	; Restore and return
+        ld      a,($20ef)
+        and     a
+        jp      nz,$L00A5
+        ld      a,($20c1)
+        rrca
+        jp      nc,$L0082	; Restore and return
+L00A5:  ld      hl,$2020
+        call    $L024B
+        call    $L0141
+        jp      $L0082		; Restore and return
+
+
+L00B1:  call    $L0886
+        push    hl
+        ld      a,(hl)
+        inc     hl
+        ld      h,(hl)
+        ld      l,a
+        ld      ($2009),hl
+        ld      ($200b),hl
+        pop     hl
+        dec     hl
+        ld      a,(hl)
+        cp      $03
+        jp      nz,$L00C8
+        dec     a
+L00C8:  ld      ($2008),a
+        cp      $fe
+        ld      a,$00
+        jp      nz,$L00D3
+        inc     a
+L00D3:  ld      ($200d),a
+        ret
+;=============================================================
+L00D7:  ld      a,$02
+        ld      ($21fb),a
+        ld      ($22fb),a
+        jp      $L08E4
+
+; 00e2 - 00ff 00's
+        .db     00,00,00,00,00,00,00,00,00,00,00,00,00,00
+        .db     00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00
+
+;=============================================================
+;
+        .org $100
+L0100:  ld      hl,$2002
+        ld      a,(hl)
+        and     a
+        jp      nz,$L1538
+        push    hl
+        ld      a,($2006)
+        ld      l,a
+        ld      a,(RAM_ActivePlayer)
+        ld      h,a
+        ld      a,(hl)
+        and     a
+        pop     hl
+        jp      z,$L0136	; Skip drawing sprite
+        inc     hl		; Bump descriptor
+        inc     hl		; Bump descriptor
+        ld      a,(hl)	; Get type (*2)
+        inc     hl		; Bump descriptor
+        ld      b,(hl)	; Get position indicator
+        and     $fe		; Must be pre-shifted (mask lower bit)
+        rlca  			; *2
+        rlca    		; *4
+        rlca    		; *8
+        ld      e,a		; Sprite's LSB
+        ld      d,$00		; Clear base MSB
+        ld      hl,ROM_AlienSprites	; Position 0 alien sprites 
+        add     hl,de		; Offset to sprite
+        ex      de,hl		; To DE
+        ld      a,b		; Position indicator
+        and     a		; Is it position 0?
+        call    nz,$L013B	; No ... use Position 1 alien sprites
+        ld      hl,($200b)	; Pixel position
+        ld      b,$10		; 16 rows in alien sprites
+        call    $L15D3		; Draw shifted sprite
+L0136:  xor     a		; Clear ...
+        ld      ($2000),a	; ... ? Flag ?
+        ret     		; Out
+;
+L013B:  ld      hl,$0030	; Offset sprites ... 
+        add     hl,de		; ... to position 1 sprites
+        ex      de,hl		; Back to DE
+        ret     		; Out
+
+L0141:  ld      a,($2068)
+        and     a
+        ret     z
+        ld      a,($2000)	; Check ? Flag ?
+        and     a		; Return if ...
+        ret     nz		; ... not cleared by DrawAlienSprite
+        ld      a,(RAM_ActivePlayer)
+        ld      h,a
+        ld      a,($2006)
+        ld      d,$02
+L0154:  inc     a
+        cp      $37
+        call    z,$L01A1
+        ld      l,a
+        ld      b,(hl)
+        dec     b
+        jp      nz,$L0154
+        ld      ($2006),a
+        call    $L017A
+        ld      h,c
+        ld      ($200b),hl
+        ld      a,l
+        cp      $28
+        jp      c,$L1971
+        ld      a,d
+        ld      ($2004),a
+        ld      a,$01		; Set ...
+        ld      ($2000),a	; ... ? Flag ?
+        ret
+
+L017A:  ld      d,$00
+        ld      a,l
+        ld      hl,$2009
+        ld      b,(hl)
+        inc     hl
+        ld      c,(hl)
+L0183:  cp      $0b
+        jp      m,$L0194
+        sbc     a,$0b
+        ld      e,a
+        ld      a,b
+        add     a,$10
+        ld      b,a
+        ld      a,e
+        inc     d
+        jp      $L0183
+L0194:  ld      l,b
+L0195:  and     a
+        ret     z
+        ld      e,a
+        ld      a,c
+        add     a,$10
+        ld      c,a
+        ld      a,e
+        dec     a
+        jp      $L0195
+L01A1:  dec     d
+        jp      z,$L01CD
+        ld      hl,$2006
+        ld      (hl),$00
+        inc     hl
+        ld      c,(hl)
+        ld      (hl),$00
+        call    $L01D9
+        ld      hl,$2005
+        ld      a,(hl)
+        inc     a
+        and     $01
+        ld      (hl),a
+        xor     a
+        ld      hl,RAM_ActivePlayer
+        ld      h,(hl)
+        ret
+        nop
+L01C0:  ld      hl,$2100
+L01C3:  ld      b,$37
+L01C5:  ld      (hl),$01
+        inc     hl
+        dec     b
+        jp      nz,$L01C5
+        ret
+L01CD:  pop     hl
+        ret
+L01CF:  ld      a,$01
+        ld      b,$e0
+        ld      hl,$2402
+        jp      $L14CC
+L01D9:  inc     hl
+        ld      b,(hl)
+        inc     hl
+        ld      a,c
+        add     a,(hl)
+        ld      (hl),a
+        inc     hl
+        ld      a,b
+        add     a,(hl)
+        ld      (hl),a
+        ret
+
+;=============================================================
+; Block copy ROM mirror to initialize RAM
+L01E4:  ld      b,$c0
+;
+L01E6:  ld      de,ROM_RAMInit	; RAM mirror in ROM 
+        ld      hl,$2000	; Start of RAM
+        jp      BlockMoveDEtoHL		; Copy [DE]->[HL]and return
+
+;=============================================================
+L01EF:  ld      hl,$2142
+        jp      $L01F8
+L01F5:  ld      hl,$2242
+L01F8:  ld      c,$04
+        ld      de,$1d20 ; -- POSSIBLE LABEL --
+L01FD:  push    de
+        ld      b,$2c
+        call    BlockMoveDEtoHL
+        pop     de
+        dec     c
+        jp      nz,$L01FD
+        ret
+
+L0209:  ld      a,$01
+        jp      $L021B
+
+L020E:  ld      a,$01
+        jp      $L0214
+
+L0213:  xor     a
+L0214:  ld      de,$2242
+        jp      $L021E
+
+L021A:  xor     a
+L021B:  ld      de,$2142	; Sprites? In RAM?
+L021E:  ld      ($2081),a
+        ld      bc,$1602	; 22 rows, 2 bytes/row
+        ld      hl,$2806	; Screen coordinates
+        ld      a,$04
+L0229:  push    af
+        push    bc
+        ld      a,($2081)
+        and     a
+        jp      nz,$L0242
+        call    $L1A69		; OR sprite onto screen
+L0235:  pop     bc
+        pop     af
+        dec     a
+        ret     z
+
+        push    de
+        ld      de,$02e0 
+        add     hl,de
+        pop     de
+        jp      $L0229
+
+L0242:  call    $L147C
+        jp      $L0235
+L0248:  ld      hl,$2010
+L024B:  ld      a,(hl)
+        cp      $ff
+        ret     z
+        cp      $fe
+        jp      z,$L0281
+        inc     hl
+        ld      b,(hl)
+        ld      c,a
+        or      b
+        ld      a,c
+        jp      nz,$L0277
+        inc     hl
+        ld      a,(hl)
+        and     a
+        jp      nz,$L0288
+        inc     hl
+        ld      e,(hl)
+        inc     hl
+        ld      d,(hl)
+        push    hl
+        ex      de,hl
+        push    hl
+        ld      hl,$026f ; -- POSSIBLE LABEL --
+        ex      (sp),hl
+        push    de
+        jp      (hl)
+L026F:  pop     hl
+        ld      de,$000c ; -- POSSIBLE LABEL --
+        add     hl,de
+        jp      $L024B
+L0277:  dec     b
+        inc     b
+        jp      nz,$L027D
+        dec     a
+L027D:  dec     b
+        ld      (hl),b
+        dec     hl
+        ld      (hl),a
+L0281:  ld      de,$0010 ; -- POSSIBLE LABEL --
+        add     hl,de
+        jp      $L024B
+L0288:  dec     (hl)
+        dec     hl
+        dec     hl
+        jp      $L0281
+        pop     hl
+        inc     hl
+        ld      a,(hl)
+        cp      $ff
+        jp      z,$L033B
+        inc     hl
+        dec     (hl)
+        ret     nz
+
+        ld      b,a
+        xor     a
+        ld      ($2068),a
+        ld      ($2069),a
+        ld      a,$30
+        ld      ($206a),a
+        ld      a,b
+        ld      (hl),$05
+        inc     hl
+        dec     (hl)
+        jp      nz,$L039B	; Ship blowing up???
+        ld      hl,($201a)
+        ld      b,$10
+        call    $L1424
+        ld      hl,$2010
+        ld      de,$1b10 ; -- POSSIBLE LABEL --
+        ld      b,$10
+        call    BlockMoveDEtoHL
+        ld      b,$00     ; Turn off EVERYTHING ...
+        call    TurnOffSounds   ; ... even the amp
+        ld      a,($206d)
+        and     a
+        ret     nz
+
+        ld      a,($20ef)
+        and     a
+        ret     z
+
+        ld      sp,$2400
+        ei
+        call    $L19D7
+        call    $L092E
+        and     a
+        jp      z,$L166D
+        call    $L18E7
+        ld      a,(hl)
+        and     a
+        jp      z,$L032C
+        ld      a,($20ce)
+        and     a
+        jp      z,$L032C
+L02ED:  ld      a,(RAM_ActivePlayer)
+        push    af
+        rrca
+        jp      c,$L0332
+        call    $L020E
+L02F8:  call    $L0878
+        ld      (hl),e
+        inc     hl
+        ld      (hl),d
+        dec     hl
+        dec     hl
+        ld      (hl),b
+        nop
+        call    $L01E4
+        pop     af
+        rrca
+        ld      a,$21
+        ld      b,$00
+        jp      nc,$L0312
+        ld      b,$20
+        ld      a,$22
+L0312:  ld      (RAM_ActivePlayer),a
+        call    $L0AB6
+        xor     a
+        ld      ($2011),a
+        ld      a,b
+        out     ($05),a	; Sound
+        inc     a
+        ld      ($2098),a
+        call    $L09D6		; Clear center window
+        call    $L1A7F		; Remove a ship and update indicators
+        jp      $L07F9
+
+L032C:  call    $L1A7F		; Remove a ship and update indicators
+        jp      $L0817
+L0332:  call    $L0209
+        jp      $L02F8
+
+        nop
+        nop
+        nop
+L033B:  ld      hl,$2068
+        ld      (hl),$01
+        inc     hl
+        ld      a,(hl)
+        and     a
+        jp      $L03B0
+
+L0346:  nop
+        dec     hl
+        ld      (hl),$01
+;
+L034A:  ld      a,($201b)	; Current player coordinates
+        ld      b,a		; Hold it
+        ld      a,($20ef)	; Demo flag
+        and     a		; Demo = 0
+        jp      nz,$L0363	; Use player controls
+; Demo is in control
+        ld      a,($201d)	; Get demo command
+        rrca    		; Is it right?
+        jp      c,$L0381	; Yes ... do right
+        rrca    		; Is it left?
+        jp      c,$L038E	; Yes ... do left
+        jp      $L036F		; Skip over movement
+;Player is in control
+L0363:  call    $L17C0		; Read active player controls
+        rlca    		; Test for ...
+        rlca    		; ... right button
+        jp      c,$L0381	; Yes ... handle move right
+        rlca    		; Test for left button
+        jp      c,$L038E	; Yes ... handle move left
+;
+L036F:  ld      hl,$2018	; Active player descriptor
+        call    $L1A3B		; Load 5 bytes
+        call    $L1A47		; Convert to screen coordinates
+        call    $L1439		; Display character
+        ld      a,$00
+        ld      ($2012),a
+        ret
+
+;=============================================================
+; Handle player moving right
+L0381:  ld      a,b		; Player coordinate
+        cp      $d9		; At right edge?
+        jp      z,$L036F	; Yes ... ignore this
+        inc     a		; Bump X coordinate
+        ld      ($201b),a	; New X coordinate
+        jp      $L036F		; Continue
+
+;=============================================================
+; Handle player moving left
+L038E:  ld      a,b		; Player coordinate
+        cp      $30		; At left edge
+        jp      z,$L036F	; Yes ... ignore this
+        dec     a		; Bump X coordinate
+        ld      ($201b),a	; New X coordinate
+        jp      $L036F		; Continue
+
+;=============================================================
+;
+L039B:  inc     a
+        and     $01
+        ld      ($2015),a
+        rlca    		; *2
+        rlca    		; *4
+        rlca    		; *8
+        rlca    		; *16
+        ld      hl,$1c70	; Player sprite location ; -- POSSIBLE LABEL --
+        add     a,l		; Offset sprite ...
+        ld      l,a		; ... pointer
+        ld      ($2018),hl	; New sprite
+        jp      $L036F		; Draw new sprite
+
+L03B0:  jp      nz,$L034A
+        inc     hl
+        dec     (hl)
+        jp      nz,$L034A	; Move player's ship
+        jp      $L0346		; Dec HL, set to 1, and move player's ship
+        ld      de,$202a
+        call    $L1A06
+        pop     hl
+        ret     nc
+
+        inc     hl
+        ld      a,(hl)
+        and     a
+        ret     z
+
+        cp      $01
+        jp      z,$L03FA
+        cp      $02
+        jp      z,$L040A
+        inc     hl
+        cp      $03
+        jp      nz,$L042A
+        dec     (hl)
+        jp      z,$L0436
+        ld      a,(hl)
+        cp      $0f
+        ret     nz
+
+        push    hl
+        call    $L0430
+        call    $L1452
+        pop     hl
+        inc     hl
+        inc     (hl)
+        inc     hl
+        inc     hl
+        dec     (hl)
+        dec     (hl)
+        inc     hl
+        dec     (hl)
+        dec     (hl)
+        dec     (hl)
+        inc     hl
+        ld      (hl),$08
+        call    $L0430
+        jp      $L1400
+L03FA:  inc     a
+        ld      (hl),a
+        ld      a,($201b)
+        add     a,$08
+        ld      ($202a),a
+        call    $L0430
+        jp      $L1400
+L040A:  call    $L0430
+        push    de
+        push    hl
+        push    bc
+        call    $L1452
+        pop     bc
+        pop     hl
+        pop     de
+        ld      a,($202c)
+        add     a,l
+        ld      l,a
+        ld      ($2029),a
+        call    $L1491
+        ld      a,($2061)
+        and     a
+        ret     z
+
+        ld      ($2002),a
+        ret
+
+L042A:  cp      $05
+        ret     z
+
+        jp      $L0436
+L0430:  ld      hl,$2027
+        jp      $L1A3B
+L0436:  call    $L0430
+        call    $L1452
+        ld      hl,$2025	; Active player shot descriptor
+        ld      de,$1b25	; Initialize data ; -- POSSIBLE LABEL --
+        ld      b,$07		; 7 bytes
+        call    BlockMoveDEtoHL ; Initiate player shot descriptor
+        ld      hl,($208d)
+        inc     l
+        ld      a,l
+        cp      $63
+        jp      c,$L0453
+        ld      l,$54
+L0453:  ld      ($208d),hl
+        ld      hl,($208f)
+        inc     l
+        ld      ($208f),hl
+        ld      a,($2084)
+        and     a
+        ret     nz
+
+        ld      a,(hl)
+        and     $01
+        ld      bc,$0229 ; -- POSSIBLE LABEL --
+        jp      nz,$L046E
+        ld      bc,$fee0
+L046E:  ld      hl,$208a
+        ld      (hl),c
+        inc     hl
+        inc     hl
+        ld      (hl),b
+        ret
+
+        pop     hl
+        ld      a,($1b32) ; -- POSSIBLE LABEL --
+        ld      ($2032),a
+        ld      hl,($2038)
+        ld      a,l
+        or      h
+        jp      nz,$L048A
+        dec     hl
+        ld      ($2038),hl
+        ret
+
+L048A:  ld      de,$2035
+        ld      a,$f9
+        call    $L0550
+        ld      a,($2046)
+        ld      ($2070),a
+        ld      a,($2056)
+        ld      ($2071),a
+        call    $L0563
+        ld      a,($2078)
+        and     a
+        ld      hl,$2035
+        jp      nz,$L055B
+        ld      de,$1b30 ; -- POSSIBLE LABEL --
+        ld      hl,$2030
+        ld      b,$10
+        jp      BlockMoveDEtoHL
+        pop     hl
+        ld      a,($206e)
+        and     a
+        ret     nz
+
+        ld      a,($2080)
+        cp      $01
+        ret     nz
+
+        ld      de,$2045
+        ld      a,$ed
+        call    $L0550
+        ld      a,($2036)
+        ld      ($2070),a
+        ld      a,($2056)
+        ld      ($2071),a
+        call    $L0563
+        ld      a,($2076)
+        cp      $10
+        jp      c,$L04E7
+        ld      a,($1b48) ; -- POSSIBLE LABEL --
+        ld      ($2076),a
+L04E7:  ld      a,($2078)
+        and     a
+        ld      hl,$2045
+        jp      nz,$L055B
+        ld      de,$1b40 ; -- POSSIBLE LABEL --
+        ld      hl,$2040
+        ld      b,$10
+        call    BlockMoveDEtoHL
+        ld      a,($2082)	; Number of aliens on screen
+        dec     a
+        jp      nz,$L0508
+        ld      a,$01
+        ld      ($206e),a
+L0508:  ld      hl,($2076)
+        jp      $L067E
+        pop     hl
+L050F:  ld      de,$2055
+        ld      a,$db
+        call    $L0550
+        ld      a,($2046)
+        ld      ($2070),a
+        ld      a,($2036)
+        ld      ($2071),a
+        call    $L0563
+        ld      a,($2076)
+        cp      $15
+        jp      c,$L0534
+        ld      a,($1b58) ; -- POSSIBLE LABEL --
+        ld      ($2076),a
+L0534:  ld      a,($2078)
+        and     a
+        ld      hl,$2055
+        jp      nz,$L055B
+        ld      de,$1b50 ; -- POSSIBLE LABEL --
+        ld      hl,$2050
+        ld      b,$10
+        call    BlockMoveDEtoHL
+        ld      hl,($2076)
+        ld      ($2058),hl
+        ret
+
+L0550:  ld      ($207f),a
+        ld      hl,$2073
+        ld      b,$0b
+        jp      BlockMoveDEtoHL
+L055B:  ld      de,$2073
+        ld      b,$0b
+        jp      BlockMoveDEtoHL
+L0563:  ld      hl,$2073
+        ld      a,(hl)
+        and     $80
+        jp      nz,$L05C1
+        ld      a,($20c1)
+        cp      $04
+        ld      a,($2069)
+        jp      z,$L05B7
+        and     a
+        ret     z
+
+        inc     hl
+        ld      (hl),$00
+        ld      a,($2070)
+        and     a
+        jp      z,$L0589
+        ld      b,a
+        ld      a,($20cf)
+        cp      b
+        ret     nc
+
+L0589:  ld      a,($2071)
+        and     a
+        jp      z,$L0596
+        ld      b,a
+        ld      a,($20cf)
+        cp      b
+        ret     nc
+
+L0596:  inc     hl
+        ld      a,(hl)
+        and     a
+        jp      z,$L061B
+        ld      hl,($2076)
+        ld      c,(hl)
+        inc     hl
+        nop
+        ld      ($2076),hl
+L05A5:  call    $L062F
+        ret     nc
+
+        call    $L017A
+        ld      a,c
+        add     a,$07
+        ld      h,a
+        ld      a,l
+        sub     $0a
+        ld      l,a
+        ld      ($207b),hl
+L05B7:  ld      hl,$2073
+        ld      a,(hl)
+        or      $80
+        ld      (hl),a
+        inc     hl
+        inc     (hl)
+        ret
+
+L05C1:  ld      de,$207c
+        call    $L1A06
+        ret     nc
+
+        inc     hl
+        ld      a,(hl)
+        and     $01
+        jp      nz,$L0644
+        inc     hl
+        inc     (hl)
+        call    $L0675
+        ld      a,($2079)
+        add     a,$03
+        ld      hl,$207f
+        cp      (hl)
+        jp      c,$L05E2
+        sub     $0c
+L05E2:  ld      ($2079),a
+        ld      a,($207b)
+        ld      b,a
+        ld      a,($207e)
+        add     a,b
+        ld      ($207b),a
+        call    $L066C
+        ld      a,($207b)
+        cp      $15
+        jp      c,$L0612
+        ld      a,($2061)
+        and     a
+        ret     z
+
+L0600:  ld      a,($207b)
+        cp      $1e
+        jp      c,$L0612
+        cp      $27
+        nop
+        jp      nc,$L0612
+        sub     a
+        ld      ($2015),a
+L0612:  ld      a,($2073)
+        or      $01
+        ld      ($2073),a
+        ret
+
+L061B:  ld      a,($201b)
+        add     a,$08
+        ld      h,a
+        call    $L156F
+        ld      a,c
+        cp      $0c
+        jp      c,$L05A5
+        ld      c,$0b
+        jp      $L05A5
+L062F:  dec     c
+        ld      a,(RAM_ActivePlayer)
+        ld      h,a
+        ld      l,c
+        ld      d,$05
+L0637:  ld      a,(hl)
+        and     a
+        scf
+        ret     nz
+
+        ld      a,l
+        add     a,$0b
+        ld      l,a
+        dec     d
+        jp      nz,$L0637
+        ret
+
+L0644:  ld      hl,$2078
+        dec     (hl)
+        ld      a,(hl)
+        cp      $03
+        jp      nz,$L0667
+        call    $L0675
+        ld      hl,$1cdc ; -- POSSIBLE LABEL --
+        ld      ($2079),hl
+        ld      hl,$207c
+        dec     (hl)
+        dec     (hl)
+        dec     hl
+        dec     (hl)
+        dec     (hl)
+        ld      a,$06
+        ld      ($207d),a
+        jp      $L066C
+L0667:  and     a
+        ret     nz
+
+        jp      $L0675
+L066C:  ld      hl,$2079
+        call    $L1A3B
+        jp      $L1491
+L0675:  ld      hl,$2079
+        call    $L1A3B
+        jp      $L1452
+L067E:  ld      ($2048),hl
+        ret
+
+        pop     hl
+        ld      a,($2080)
+        cp      $02
+        ret     nz
+
+        ld      hl,$2083
+        ld      a,(hl)
+        and     a
+        jp      z,$L050F
+        ld      a,($2056)
+        and     a
+        jp      nz,$L050F
+        inc     hl
+        ld      a,(hl)
+        and     a
+        jp      nz,$L06AB
+        ld      a,($2082)	; Number of aliens remaining
+        cp      $08		; Less than ...
+        jp      c,$L050F	; 8, do this ...
+        ld      (hl),$01
+        call    $L073C
+L06AB:  ld      de,$208a
+        call    $L1A06
+        ret     nc
+
+        ld      hl,$2085
+        ld      a,(hl)
+        and     a
+        jp      nz,$L06D6
+        ld      hl,$208a
+        ld      a,(hl)
+        inc     hl
+        inc     hl
+        add     a,(hl)
+        ld      ($208a),a
+        call    $L073C
+        ld      hl,$208a
+        ld      a,(hl)
+        cp      $28
+        jp      c,$L06F9
+        cp      $e1
+        jp      nc,$L06F9
+        ret
+
+L06D6:  ld      b,$fe		; Turn off ...
+        call    TurnOffSounds	; ... UFO sound
+        inc     hl
+        dec     (hl)
+        ld      a,(hl)
+        cp      $1f
+        jp      z,$L074B
+        cp      $18
+        jp      z,$L070C
+        and     a
+        ret     nz
+        ld      b,$ef
+        ld      hl,$2098
+        ld      a,(hl)
+        and     b
+        ld      (hl),a
+        and     $20		; All off but
+        out     ($05),a	; Sound
+        nop     		; Pause
+        nop     		; Pause
+        nop     		; Pause
+L06F9:  call    $L0742		; Covert pixel pos from descriptor to HL screen and shift
+        call    $L14CB		; Clear a one byte sprite at HL
+        ld      hl,$2083	; RAM ?
+        ld      b,$0a		; 10 bytes
+        call    $L075F		; Re-initialize some RAM
+L0707:  ld      b,$fe		; Turn off ...
+        jp      TurnOffSounds	; ... UFO sound
+
+L070C:  ld      a,$01
+        ld      ($20f1),a
+        ld      hl,($208d)
+        ld      b,(hl)
+        ld      c,$04
+        ld      hl,$1d50 ; -- POSSIBLE LABEL --
+        ld      de,$1d4c ; -- POSSIBLE LABEL --
+L071D:  ld      a,(de)
+        cp      b
+        jp      z,$L0728
+        inc     hl
+        inc     de
+        dec     c
+        jp      nz,$L071D
+L0728:  ld      a,(hl)
+        ld      ($2087),a	; First of descriptor (X coordinate)
+        ld      h,$00		; MSB = 0 ...
+        ld      l,b		; HL = B
+        add     hl,hl		; *2
+        add     hl,hl		; *4
+        add     hl,hl		; *8
+        add     hl,hl		; *16
+        ld      ($20f2),hl	; Score for hitting saucer???
+        call    $L0742		; Fetch 5 bytes from 2087 descriptor
+        jp      $L08F1		; Print message of length 3 (saucer score?)
+
+L073C:  call    $L0742		; Fetch info from 2087 descriptor
+        jp      $L1439		; Print single character
+
+L0742:  ld      hl,$2087	; ? Descriptor ?
+        call    $L1A3B		; Load 5 bytes from HL
+        jp      $L1A47		; Convert pixel number to screen and shift
+;
+L074B:  ld      b,$10
+        ld      hl,$2098
+        ld      a,(hl)
+        or      b
+        ld      (hl),a
+        call    $L1770
+        ld      hl,$1d7c ; -- POSSIBLE LABEL --
+        ld      ($2087),hl
+        jp      $L073C
+;
+L075F:  ld      de,$1b83	; Data for ? ; -- POSSIBLE LABEL --
+        jp      BlockMoveDEtoHL		; Block copy [HL] to [DE]
+
+;=============================================================
+; Wait for player 1 start button press
+L0765:  ld      a,$01
+        ld      ($2093),a
+        ld      sp,$2400	; Reset stack
+        ei      		; Enable interrupts
+        call    $L1979		; Clear the 20E9 flag ???
+        call    $L09D6		; Clear center window
+        ld      hl,$3013	; Screen coordinates
+        ld      de,ROM_MsgPush	; "PUSH" 
+        ld      c,$04		; Message length
+        call    $L08F3		; Print it
+L077F:  ld      a,(RAM_NumCredits)	; Number of credits
+        dec     a		; Set flags
+        ld      hl,$2810	; Screen coordinates
+        ld      c,$14		; Message length
+        jp      nz,$L0857	; Take 1 or 2 player start
+        ld      de,ROM_MsgOnly1	; "ONLY 1PLAYER BUTTON "
+        call    $L08F3		; Print message
+        in      a,($01)	        ; Read player controls
+        and     $04		; 1Player start button?
+        jp      z,$L077F	        ; No ... wait for button or credit
+
+;=============================================================
+; START NEW GAME
+;
+; 1 Player start
+L0798:  ld      b,$99		; Essentially a -1 for DAA
+        xor     a		; Clear two player flag
+;
+; 2 player start sequence enters here with a=1 and B=98 (-2)
+L079B:  ld      ($20ce),a	; Set flag for 1 or 2 players
+        ld      a,(RAM_NumCredits)	; Number of credits
+        add     a,b		; Take away credits
+        daa     		; Convert back to DAA
+        ld      (RAM_NumCredits),a	; New credit count
+        call    $L1947		; Display number of credits
+        ld      hl,$0000 
+        ld      ($20f8),hl
+        ld      ($20fc),hl
+        call    $L1925
+        call    $L192B
+        call    $L19D7
+        ld      hl,$0101 
+        ld      a,h
+        ld      ($20ef),a
+        ld      ($20e7),hl
+        ld      ($20e5),hl
+        call    $L1956		; Print scores and credits
+        call    $L01EF
+        call    $L01F5
+        call    $L08D1		; Get number of ships from DIP settings
+        ld      ($21ff),a
+        ld      ($22ff),a
+        call    $L00D7
+        xor     a
+        ld      ($21fe),a
+        ld      ($22fe),a
+        call    $L01C0
+        call    $L1904
+        ld      hl,$3878
+        ld      ($21fc),hl
+        ld      ($22fc),hl
+        call    $L01E4
+        call    $L1A7F		; Initialize ship hold indicator
+;
+L07F9:  call    $L088D
+        call    $L09D6
+        nop
+        xor     a
+        ld      ($20c1),a
+L0804:  call    $L01CF
+        ld      a,(RAM_ActivePlayer)
+        rrca
+        jp      c,$L0872
+        call    $L0213
+        call    $L01CF
+L0814:  call    $L00B1
+L0817:  call    $L19D1		; Set 20E9 flag to 1
+        ld      b,$20           ; Turn on sound amp ...
+        call    TurnOnSounds	; ... and turn off other sounds
+;
+; GAME LOOP
+;
+L081F:  call    $L1618		; Initiate player shot if button pressed
+        call    $L190A		; ??? Collision detection for shot ???
+        call    $L15F3		; ???
+        call    $L0988		; ???
+        ld      a,($2082)
+        and     a
+        jp      z,$L09EF	; ???
+        call    $L170E		; ???
+        call    $L0935		; Check (and handle) extra ship award
+        call    $L08D8		; ???
+        call    $L172C		; Shot sound on or off with 2025
+        call    $L0A59		; Check if player is hit
+        jp      z,$L0849	; No hit ... jump handler
+        ld      b,$04		; Player explosion ...
+        call    TurnOnSounds	; ... sound
+L0849:  call    $L1775		; ???
+        out     ($06),a	        ; Feed the watchdog
+        call    $L1804		; ???
+        jp      $L081F		; Continue game loop
+
+        nop
+        nop
+        nop
+
+;=============================================================
+; Test for 1 or 2 player start button press
+L0857:  ld      de,ROM_Msg1or2	; "1 OR 2PLAYERS BUTTON" 
+        call    $L08F3		; Print message
+        ld      b,$98		; -2 (take away 2 credits)
+        in      a,($01)	        ; Read player controls
+        rrca    		; Test ...
+        rrca    		; ... bit 2
+        jp      c,$L086D	        ; 2 player button pressed ... do it
+        rrca    		; Test bit 3
+        jp      c,$L0798	        ; One player start ... do it
+        jp      $L077F		; Keep waiting on credit or button
+; 2 PLAYER START
+L086D:  ld      a,$01		; Flag 2 player game
+        jp      $L079B		; Continue normal startup
+
+;=============================================================
+L0872:  call    $L021A
+        jp      $L0814
+L0878:  ld      a,($2008)
+        ld      b,a
+        ld      hl,($2009)
+        ex      de,hl
+        jp      $L0886
+        nop
+        nop
+        nop
+L0886:  ld      a,(RAM_ActivePlayer)
+        ld      h,a
+        ld      l,$fc
+        ret
+
+L088D:  ld      hl,$2b11
+        ld      de,$1b70 ; -- POSSIBLE LABEL --
+        ld      c,$0e
+        call    $L08F3
+        ld      a,(RAM_ActivePlayer)
+        rrca
+        ld      a,$1c
+        ld      hl,$3711
+        call    nc,$L08FF
+        ld      a,$b0              ; Set counter ...
+        ld      (RAM_GPCounter),a  ; ... to B0
+L08A9:  ld      a,(RAM_GPCounter)  ; Return if ...
+        and     a                  ; ... counter ...
+        ret     z                  ; reached 0
+        and     $04
+        jp      nz,$L08BC
+        call    $L09CA
+        call    $L1931
+        jp      $L08A9             ; Back to check on counter
+
+L08BC:  ld      b,$20
+        ld      hl,$271c
+        ld      a,(RAM_ActivePlayer)
+        rrca
+        jp      c,$L08CB
+        ld      hl,$391c
+L08CB:  call    $L14CB		  ; Clear a one byte sprite at HL
+        jp      $L08A9            ; Back to check on counter
+
+
+;=============================================================
+; Get number of ships from DIP settings
+L08D1:  in      a,($02)	; DIP settings
+        and     $03		; Get number of ships
+        add     a,$03		; From 3-6
+        ret     		; Out
+
+L08D8:  ld      a,($2082)	; Number of aliens on screen
+        cp      $09
+        ret     nc
+        ld      a,$fb
+        ld      ($207e),a
+        ret
+
+L08E4:  ld      a,($20ce)
+        and     a
+        ret     nz
+
+        ld      hl,$391c
+        ld      b,$20		; 32 rows
+        jp      $L14CB		; Clear a one byte sprite at HL
+
+L08F1:  ld      c,$03
+
+;=============================================================
+; Print a message on the screen
+; HL = coordinates
+; DE = message buffer
+; C = length
+L08F3:  ld      a,(de)	; Get character
+        push    de		; Preserve
+        call    $L08FF		; Print character
+        pop     de		; Restore
+        inc     de		; Next character
+        dec     c		; All done?
+        jp      nz,$L08F3	; Print all of message
+        ret     		; Out
+
+;=============================================================
+; Get pointer to 8 byte sprite number in A and
+; draw sprite on screen at HL
+L08FF:  ld      de,ROM_TextSprites	; Character set 
+        push    hl		; Preserve
+        ld      h,$00		; MSB=0
+        ld      l,a		; Character number to L
+        add     hl,hl		; HL = HL *2
+        add     hl,hl		; *4
+        add     hl,hl		; *8 (8 bytes each)
+        add     hl,de		; Get pointer to sprite
+        ex      de,hl		; Now into DE
+        pop     hl		; Restore HL
+        ld      b,$08		; 8 bytes each
+        out     ($06),a	        ; Feed watchdog
+        jp      $L1439		; To screen
+
+;=============================================================
+L0913:  ld      a,($2009)
+        cp      $78
+        ret     nc
+        ld      hl,($2091)
+        ld      a,l
+        or      h
+        jp      nz,$L0929
+        ld      hl,$0600 ; -- POSSIBLE LABEL --
+        ld      a,$01
+        ld      ($2083),a
+L0929:  dec     hl
+        ld      ($2091),hl
+        ret
+
+;=============================================================
+; Get number of ships for acive player
+L092E:  call    $L1611		; HL points to player data
+        ld      l,$ff		; Last byte = numbe of ships
+        ld      a,(hl)	; Get number of ships
+        ret     		; Done
+
+;=============================================================
+; Award extra ship if score has reached ceiling
+L0935:  call    $L1910		; Get descriptor of sorts
+        dec     hl		; Back up ...
+        dec     hl		; ... two bytes
+        ld      a,(hl)	; Has extra ship ...
+        and     a		; already been awarded?
+        ret     z		; Yes ... ignore
+        ld      b,$15		; Default 1500
+        in      a,($02)	; Read DIP settings
+        and     $08		; Extra ship at 1000 or 1500
+        jp      z,$L0948	; 0=1500
+        ld      b,$10		; Awarded at 1000
+L0948:  call    $L09CA		; Get score descriptor for active player
+        inc     hl		; MSB of score ...
+        ld      a,(hl)	; ... to accumulator
+        cp      b		; Time for an extra ship?
+        ret     c		; No ... out
+        call    $L092E		; Get pointer to number of ships
+        inc     (hl)		; Bump number of ships
+        ld      a,(hl)	; Get the new total
+        push    af		; Hang onto it for a bit
+        ld      hl,$2501	; Screen coords for ship hold
+L0958:  inc     h		; Bump to ...
+        inc     h		; ... next
+        dec     a		; ... spot
+        jp      nz,$L0958	; Find spot for new ship
+        ld      b,$10		; 16 byte sprite
+        ld      de,ROM_PlayerSprite	; Player sprite 
+        call    $L1439		; Draw the sprite
+        pop     af		; Restore the count
+        inc     a		; +1
+        call    $L1A8B		; Print the number of ships
+        call    $L1910		; Get descriptor for active player of some sort
+        dec     hl		; Back up ...
+        dec     hl		; ... two bytes
+        ld      (hl),$00	; Flag extra ship has been awarded
+        ld      a,$ff		; Set timer ...
+        ld      ($2099),a	; ... for extra-ship sound
+        ld      b,$10		; Turn on ...
+        jp      TurnOnSounds	; ... extra player sound
+
+L097C:  ld      hl,$1da0 ; -- POSSIBLE LABEL --
+        cp      $02
+        ret     c
+        inc     hl
+        cp      $04
+        ret     c
+        inc     hl
+        ret
+
+L0988:  call    $L09CA
+        ld      a,($20f1)
+        and     a
+        ret     z
+        xor     a
+        ld      ($20f1),a
+        push    hl
+        ld      hl,($20f2)
+        ex      de,hl
+        pop     hl
+        ld      a,(hl)
+        add     a,e
+        daa
+        ld      (hl),a
+        ld      e,a
+        inc     hl
+        ld      a,(hl)
+        adc     a,d
+        daa
+        ld      (hl),a
+        ld      d,a
+        inc     hl
+        ld      a,(hl)
+        inc     hl
+        ld      h,(hl)
+        ld      l,a
+        jp      $L09AD	; Why on earth are we jumping to next?
+
+;=============================================================
+; Print 4 digits in DE
+L09AD:  ld      a,d
+        call    $L09B2
+        ld      a,e
+
+;=============================================================
+; Display 2 digits in A to screen at HL
+L09B2:  push    de	; Preserve
+        push    af	; Save for later
+        rrca    	; Get ...
+        rrca    	; ...
+        rrca    	; ...
+        rrca    	; ... left digit
+        and     $0f	; Mask out lower digit's bits
+        call    $L09C5	; To screen at HL
+        pop     af	; Restore digit
+        and     $0f	; Mask out upper digit
+        call    $L09C5	; To screen
+        pop     de	; Restore
+        ret     	; Done
+;
+L09C5:  add     a,$1a	; Bump to number characters
+        jp      $L08FF	; Continue ...
+
+;=============================================================
+; Get score descriptor for active player
+L09CA:  ld      a,(RAM_ActivePlayer)	; Get active player
+        rrca    		; Test for player
+        ld      hl,$20f8	; Player 1 score descriptor
+        ret     c		; Keep it if player 1 is active
+        ld      hl,$20fc	; Else get player 2 descriptor
+        ret     		; Out
+
+;=============================================================
+; Clear center window of screen
+L09D6:  ld      hl,$2402	; Thrid from left, top of screen
+L09D9:  ld      (hl),$00	; Clear screen byte
+        inc     hl		; Next in row
+        ld      a,l		; Get X ...
+        and     $1f		; ... coordinate
+        cp      $1c		; Edge minus a buffer?
+        jp      c,$L09E8	; No ... keep going
+        ld      de,$0006	; Else ... bump to 
+        add     hl,de		; ... next edge + buffer
+L09E8:  ld      a,h		; Get Y coordinate
+        cp      $40		; Reached bottom?
+        jp      c,$L09D9	; No ... keep going
+        ret     		; Done
+
+L09EF:  call    $L0A3C
+        xor     a
+        ld      ($20e9),a
+        call    $L09D6
+        ld      a,(RAM_ActivePlayer)
+        push    af
+        call    $L01E4
+        pop     af
+        ld      (RAM_ActivePlayer),a
+        ld      a,(RAM_ActivePlayer)
+        ld      h,a
+        push    hl
+        ld      l,$fe
+        ld      a,(hl)
+        and     $07
+        inc     a
+        ld      (hl),a
+        ld      hl,$1da2 ; -- POSSIBLE LABEL --
+L0A13:  inc     hl
+        dec     a
+        jp      nz,$L0A13
+        ld      a,(hl)
+        pop     hl
+        ld      l,$fc
+        ld      (hl),a
+        inc     hl
+        ld      (hl),$38
+        ld      a,h
+        rrca
+        jp      c,$L0A33
+        ld      a,$21
+        ld      ($2098),a
+        call    $L01F5
+        call    $L1904
+        jp      $L0804
+L0A33:  call    $L01EF
+        call    $L01C0
+        jp      $L0804
+L0A3C:  call    $L0A59
+        jp      nz,$L0A52
+        ld      a,$30
+        ld      (RAM_GPCounter),a
+L0A47:  ld      a,(RAM_GPCounter)
+        and     a
+        ret     z
+
+        call    $L0A59
+        jp      z,$L0A47
+L0A52:  call    $L0A59
+        jp      nz,$L0A52
+        ret
+
+;=============================================================
+; Check to see if player is hit
+L0A59:  ld      a,($2015)	; Active player hit flag
+        cp      $ff		; All FFs means player is OK
+        ret     		; Out
+
+L0A5F:  ld      a,($20ef)	; Test for demo play
+        and     a		; '
+        jp      z,$L0A7C	; Yes ... skip
+        ld      c,b		; Hold B
+        ld      b,$08		; Alien-hit ...
+        call    TurnOnSounds	; ... sound
+        ld      b,c		; Restore B
+        ld      a,b		; Into A
+        call    $L097C
+        ld      a,(hl)
+        ld      hl,$20f3
+        ld      (hl),$00
+        dec     hl
+        ld      (hl),a
+        dec     hl
+        ld      (hl),$01
+L0A7C:  ld      hl,$2062	; Return exploding-alien descriptor
+        ret     		; Out
+
+L0A80:  ld      a,$02
+        ld      ($20c1),a
+L0A85:  out     ($06),a	        ; Feed watchdog
+        ld      a,($20cb)
+        and     a
+        jp      z,$L0A85
+        xor     a
+        ld      ($20c1),a
+        ret
+
+;=============================================================
+; Print message from DE to screen at HL (length in B) with a
+; delay between letters.
+L0A93:  push    de		; Preserve
+        ld      a,(de)	; Get character
+        call    $L08FF		; Draw character on screen
+        pop     de		; Preserve
+        ld      a,$07		; Delay between letters
+        ld      (RAM_GPCounter),a	; Set counter
+L0A9E:  ld      a,(RAM_GPCounter)	; Get counter
+        dec     a		; Is it 1?
+        jp      nz,$L0A9E	; No ... wait on it
+        inc     de		; Next in message
+        dec     c		; All done?
+        jp      nz,$L0A93	; No ... do all
+        ret     		; Out
+
+L0AAB:  ld      hl,$2050
+        jp      $L024B
+
+;=============================================================
+; Delay 40 interrupts
+L0AB1:  ld      a,$40		; Delay of 40
+        jp      $L0AD7		; Do delay
+
+;=============================================================
+; Delay 80 interrupts
+L0AB6:  ld      a,$80		; Delay of 80
+        jp      $L0AD7		; Do delay
+
+L0ABB:  pop     hl
+        jp      $L0072
+
+;=============================================================
+L0ABF:  ld      a,($20c1)
+        rrca
+        jp      c,$L0ABB
+        rrca
+        jp      c,$L1868
+        rrca
+        jp      c,$L0AAB
+        ret
+L0ACF:  ld      hl,$2b14
+        ld      c,$0f
+        jp      $L0A93
+
+;=============================================================
+; Wait on ISR counter to reach 0
+L0AD7:  ld      (RAM_GPCounter),a	; Delay counter
+L0ADA:  ld      a,(RAM_GPCounter)	; Get current delay
+        and     a		; Zero yet?
+        jp      nz,$L0ADA	; No ... wait on it
+        ret     		; Out
+
+L0AE2:  ld      hl,$20c2	; RAM
+        ld      b,$0c		; C bytes
+        jp      BlockMoveDEtoHL		; Block copy DE to HL (B)
+
+;=============================================================
+; After initialization
+L0AEA:  xor     a
+        out     ($03),a	; Turn off sound
+        out     ($05),a	; Turn off sound
+        call    $L1982
+        ei
+        call    $L0AB1
+        ld      a,($20ec)
+        and     a
+        ld      hl,$3017
+        ld      c,$04
+        jp      nz,$L0BE8
+        ld      de,$1cfa ; -- POSSIBLE LABEL --
+        call    $L0A93
+        ld      de,$1daf ; -- POSSIBLE LABEL --
+L0B0B:  call    $L0ACF
+        call    $L0AB1
+        call    $L1815
+        call    $L0AB6
+        ld      a,($20ec)
+        and     a
+        jp      nz,$L0B4A
+        ld      de,$1a95 ; -- POSSIBLE LABEL --
+        call    $L0AE2		; Copy to RAM
+        call    $L0A80
+        ld      de,$1bb0 ; -- POSSIBLE LABEL --
+        call    $L0AE2
+        call    $L0A80
+        call    $L0AB1
+        ld      de,$1fc9 ; -- POSSIBLE LABEL --
+        call    $L0AE2
+        call    $L0A80
+        call    $L0AB1
+        ld      hl,$33b7
+        ld      b,$0a		; 10 rows
+        call    $L14CB		; Clear a one byte sprite at HL
+        call    $L0AB6
+L0B4A:  call    $L09D6
+        ld      a,($21ff)
+        and     a
+        jp      nz,$L0B5D
+        call    $L08D1		; Get number of ships from DIP settings
+        ld      ($21ff),a
+        call    $L1A7F		; Remove a ship and update indicators
+L0B5D:  call    $L01E4
+        call    $L01C0
+        call    $L01EF
+        call    $L021A
+        ld      a,$01
+        ld      ($20c1),a
+        call    $L01CF
+L0B71:  call    $L1618
+        call    $L0BF1
+        out     ($06),a	         ; Feed watchdog
+        call    $L0A59
+        jp      z,$L0B71
+        xor     a		; Remove player shot ...
+        ld      ($2025),a	; ... from activity
+L0B83:  call    $L0A59
+        jp      nz,$L0B83
+L0B89:  xor     a
+        ld      ($20c1),a
+        call    $L0AB1
+        call    $L1988
+        ld      c,$0c
+        ld      hl,$2c11	; Screen coordinates
+        ld      de,ROM_MsgInsertCoin	; "INSERT  COIN" 
+        call    $L08F3		; Print message
+        ld      a,($20ec)
+        cp      $00
+        jp      nz,$L0BAE
+        ld      hl,$3311	; Screen coordinates
+        ld      a,$02		; Number 2
+        call    $L08FF		; Print number 2
+L0BAE:  ld      bc,$1f9c ; -- POSSIBLE LABEL --
+        call    $L1856
+        call    $L184C
+        in      a,($02)
+        rlca
+        jp      c,$L0BC3
+        ld      bc,$1fa0 ; -- POSSIBLE LABEL --
+        call    $L183A
+L0BC3:  call    $L0AB6
+        ld      a,($20ec)
+        cp      $00
+        jp      nz,$L0BDA
+        ld      de,$1fd5 ; -- POSSIBLE LABEL --
+        call    $L0AE2
+        call    $L0A80
+        call    $L189E
+L0BDA:  ld      hl,$20ec
+        ld      a,(hl)
+        inc     a
+        and     $01
+        ld      (hl),a
+        call    $L09D6
+        jp      $L18DF		; Gets back to AfterInitialization
+
+L0BE8:  ld      de,$1dab ; -- POSSIBLE LABEL --
+        call    $L0A93
+        jp      $L0B0B
+L0BF1:  call    $L190A
+        jp      $L199A
+
+
+ROM_MsgTaitoCop: ; Text message "TAITO COP"
+       .db     $13,$00,$08,$13,$0e,$26,$02,$0e,$0f
+
+;0c00 - 13ff 00's
+
+        .org    $1400
+L1400:  nop
+        call    $L1474
+        nop
+L1405:  push    bc
+        push    hl
+        ld      a,(de)
+        out     ($04),a
+        in      a,($03)	; Read shift register
+        or      (hl)
+        ld      (hl),a
+        inc     hl
+        inc     de
+        xor     a
+        out     ($04),a
+        in      a,($03)	; Read shift register
+        or      (hl)
+        ld      (hl),a
+        pop     hl
+        ld      bc,$0020 ; -- POSSIBLE LABEL --
+        add     hl,bc
+        pop     bc
+        dec     b
+        jp      nz,$L1405
+        ret
+
+        nop
+        nop
+
+;=============================================================
+; Clear a sprite from the screen (standard pixel number descriptor)  
+L1424:  call    $L1474		; Convert pixel number in HL
+L1427:  push    bc		; Hold
+        push    hl		; Hold
+        xor     a		; 0
+        ld      (hl),a	; Clear screen byte
+        inc     hl		; Next byte
+        ld      (hl),a	; Clear byte
+        inc     hl		; ? Why do this ?
+        pop     hl		; Restore screen coordinate
+        ld      bc,$0020	; Add 1 row ... 
+        add     hl,bc		; ... to screen coordinate
+        pop     bc		; Restore counter
+        dec     b		; All rows done?
+        jp      nz,$L1427	; Do all rows
+        ret     		; out
+
+;=============================================================
+; Display character to screen
+; HL = screen coordinates
+; DE = character data
+; B = number of rows
+L1439:  push    bc		; Preserve counter
+        ld      a,(de)	; From character set ...
+        ld      (hl),a	; ... to screen
+        inc     de		; Next in character set
+        ld      bc,$0020	; Next row ... 
+        add     hl,bc		; ... on screen
+        pop     bc		; Restore counter
+        dec     b		; Decrement counter
+        jp      nz,$L1439	; Do all
+        ret     		; Out
+
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+L1452:  call    $L1474
+L1455:  push    bc
+        push    hl
+        ld      a,(de)
+        out     ($04),a
+        in      a,($03)	; Read shift-register
+        cpl
+        and     (hl)
+        ld      (hl),a
+        inc     hl
+        inc     de
+        xor     a
+        out     ($04),a
+        in      a,($03)	; Read shift register
+        cpl
+        and     (hl)
+        ld      (hl),a
+        pop     hl
+        ld      bc,$0020 
+        add     hl,bc
+        pop     bc
+        dec     b
+        jp      nz,$L1455
+        ret
+
+;=============================================================
+; Convert pixel number in HL to screen coordinate and shift amount.
+; HL gets screen coordinate.
+; Hardware shift-register gets amount.
+L1474:  ld      a,l		; Get X coordinate
+        and     $07		; Shift by pixel position
+        out     ($02),a	; Write shift amount
+        jp      $L1A47		; HL = HL/8 + 2000 (screen coordinate)
+
+L147C:  push    bc
+        push    hl
+L147E:  ld      a,(hl)
+        ld      (de),a
+        inc     de
+        inc     hl
+        dec     c
+        jp      nz,$L147E
+        pop     hl
+        ld      bc,$0020 
+        add     hl,bc
+        pop     bc
+        dec     b
+        jp      nz,$L147C
+        ret
+
+L1491:  call    $L1474
+        xor     a
+        ld      ($2061),a
+L1498:  push    bc
+        push    hl
+        ld      a,(de)
+        out     ($04),a
+        in      a,($03)	; Read shift-register
+        push    af
+        and     (hl)
+        jp      z,$L14A9
+        ld      a,$01
+        ld      ($2061),a
+L14A9:  pop     af
+        or      (hl)
+        ld      (hl),a
+        inc     hl
+        inc     de
+        xor     a
+        out     ($04),a
+        in      a,($03)	; Read shift register
+        push    af
+        and     (hl)
+        jp      z,$L14BD
+        ld      a,$01
+        ld      ($2061),a
+L14BD:  pop     af
+        or      (hl)
+        ld      (hl),a
+        pop     hl
+        ld      bc,$0020 
+        add     hl,bc
+        pop     bc
+        dec     b
+        jp      nz,$L1498
+        ret
+
+;=============================================================
+; Clear a one byte sprite at HL. B=number of rows.
+L14CB:  xor     a		; 0
+L14CC:  push    bc		; Preserve BC
+        ld      (hl),a	; Clear screen byte
+        ld      bc,$0020	; Bump HL ... 
+        add     hl,bc		; ... one screen row
+        pop     bc		; Restore
+        dec     b		; All done?
+        jp      nz,$L14CC	; No ... clear all
+        ret
+
+;=============================================================
+;
+L14D8:  ld      a,($2025)	; Player shot flag
+        cp      $05		; Alien explosion in progress?
+        ret     z		; Yes ... ignore this function
+        cp      $02
+        ret     nz
+        ld      a,($2029)	; Get Y coordinate of player shot
+        cp      $d8
+        ld      b,a
+        jp      nc,$L1530	; If less than D8, set shot flag to 03 and ???
+        ld      a,($2002)
+        and     a
+        ret     z
+        ld      a,b		; Get original Y coordinate
+        cp      $ce
+        jp      nc,$L1579	; If less than CE, set 2085 to 3 ???
+        add     a,$06
+        ld      b,a
+        ld      a,($2009)
+        cp      $90
+        jp      nc,$L1504
+        cp      b
+        jp      nc,$L1530
+L1504:  ld      l,b
+        call    $L1562
+        ld      a,($202a)
+        ld      h,a
+        call    $L156F		; Get alien's coordinate
+        ld      ($2064),hl	; Put it in the exploding-alien descriptor
+        ld      a,$05		; Flag alien explosion ...
+        ld      ($2025),a	; ... in progress
+        call    $L1581		; Get descriptor for alien
+        ld      a,(hl)	; Is alien ...
+        and     a		; ... alive
+        jp      z,$L1530	; No ... skip
+        ld      (hl),$00	; Make alien invader dead
+        call    $L0A5F		; ??? Makes alien explosion sound and other things ???
+        call    $L1A3B		; Load 5 byte sprite descriptor
+        call    $L15D3		; Draw explosion sprite on screen
+        ld      a,$10		; Initiate alien-explosion
+        ld      ($2003),a	; ... timer
+        ret     		; Out
+
+L1530:  ld      a,$03
+        ld      ($2025),a
+        jp      $L154A
+
+L1538:  ld      hl,$2003	; Decrement explosion ...
+        dec     (hl)		; ... timer
+        ret     nz		; Not time ... out
+        ld      hl,($2064)	; Pixel pointer for exploding alien
+        ld      b,$10		; 16 row pixel
+        call    $L1424		; Clear the explosion sprite from the screen
+L1545:  ld      a,$04
+        ld      ($2025),a
+L154A:  xor     a
+        ld      ($2002),a
+        ld      b,$f7		; Turn off ...
+        jp      TurnOffSounds	; ... alien exploding sound
+
+        nop
+    
+L1554:  ld      c,$00
+        cp      h
+        call    nc,$L1590
+L155A:  cp      h
+        ret     nc
+        add     a,$10
+        inc     c
+        jp      $L155A
+
+L1562:  ld      a,($2009)
+        ld      h,l
+        call    $L1554
+        ld      b,c
+        dec     b
+        sbc     a,$10
+        ld      l,a
+        ret
+
+L156F:  ld      a,($200a)
+        call    $L1554
+        sbc     a,$10
+        ld      h,a
+        ret
+
+L1579:  ld      a,$01
+        ld      ($2085),a
+        jp      $L1545
+
+;=============================================================
+; Get pointer into 11 byte descriptor. A = structure number,
+; C = byte number (1 based).
+; A*11+C-1 -> L
+; ActivePlayer -> H
+L1581:  ld      a,b		; Hold original
+        rlca    		; *2
+        rlca    		; *4
+        rlca    		; *8
+        add     a,b		; *9
+        add     a,b		; *10
+        add     a,b		; *11
+        add     a,c		; Add offset into descriptor
+        dec     a		; -1
+        ld      l,a		; Set LSB of HL
+        ld      a,(RAM_ActivePlayer)	; Set ...
+        ld      h,a		; ... MSB of HL with active player indicator
+        ret
+
+L1590:  inc     c		; ++C
+        add     a,$10		; Add 16 to A
+        jp      m,$L1590	; Keep going if result is negative
+        ret     		; Out
+
+L1597:  ld      a,($200d)
+        and     a
+        jp      nz,$L15B7
+        ld      hl,$3ea4
+        call    $L15C5
+        ret     nc
+        ld      b,$fe
+        ld      a,$01
+L15A9:  ld      ($200d),a
+        ld      a,b
+        ld      ($2008),a
+        ld      a,($200e)
+        ld      ($2007),a
+        ret
+;
+L15B7:  ld      hl,$2524
+        call    $L15C5
+        ret     nc
+        call    $L18F1
+        xor     a
+        jp      $L15A9
+;
+L15C5:  ld      b,$17
+L15C7:  ld      a,(hl)
+        and     a
+        jp      nz,$L166B
+        inc     hl
+        dec     b
+        jp      nz,$L15C7
+        ret
+
+        nop
+    
+;=============================================================
+; Draw sprite at [DE] to screen at pixel position in HL
+; The hardware shift register is used in converting pixel positions
+; to screen coordinates.
+L15D3:  call    $L1474		; Convert pixel number to screen/shift
+        push    hl		; Preserve screen coordinate
+L15D7:  push    bc		; Hold for a second
+        push    hl		; Hold for a second
+        ld      a,(de)	; From sprite data
+        out     ($04),a	; Write data to shift register
+        in      a,($03)	; Read back shifted amount
+        ld      (hl),a	; Shifted sprite to screen
+        inc     hl		; Adjacent cell
+        inc     de		; Next in sprite data
+        xor     a		; 0
+        out     ($04),a	; Write 0 to shift register
+        in      a,($03)	; Read back remainder of previous
+        ld      (hl),a	; Write remainder to adjacent
+        pop     hl		; Old screen coordinate
+        ld      bc,$0020	; Offset screen ... 
+        add     hl,bc		; ... to next row
+        pop     bc		; Restore count
+        dec     b		; All done?
+        jp      nz,$L15D7	; No ... do all
+        pop     hl		; Restore HL
+        ret     		; Done
+
+;=============================================================
+; Count number of aliens remaining in active game and return count
+; 2082 holds the current count
+; If only 1, 206b gets a flag of 1
+L15F3:  call    $L1611		; Get active player descriptor
+        ld      bc,$3700	; B=55 aliens to check?
+L15F9:  ld      a,(hl)	; Get byte
+        and     a		; Is it a zero?
+        jp      z,$L15FF	; Yes ... don't count it
+        inc     c		; Count the zeros
+L15FF:  inc     hl		; Next slot
+        dec     b		; Count ...
+        jp      nz,$L15F9	; ... all alien indicators
+        ld      a,c		; Get the count
+        ld      ($2082),a	; Hold it
+        cp      $01		; Just one?
+        ret     nz		; No keep going
+        ld      hl,$206b	; ???
+        ld      (hl),$01	; ???
+        ret     		; Out
+
+;=============================================================
+; Set HL with 0000 if player 1 is active
+; or 0100 if player 2 is active
+L1611:  ld      l,$00		; Byte boundary
+        ld      a,(RAM_ActivePlayer)	; Active player number
+        ld      h,a		; Set HL to data
+        ret     		; Done
+
+;=============================================================
+; Initiate player fire if button is pressed.
+; Demo commands are parsed here if in demo mode
+L1618:  ld      a,($2015)	; Is there an active player?
+        cp      $ff		; FF = alive
+        ret     nz		; Player has been shot - no firing
+        ld      hl,$2010
+        ld      a,(hl)
+        inc     hl
+        ld      b,(hl)
+        or      b
+        ret     nz
+        ld      a,($2025)	; Does the player have ...
+        and     a		; ... a shot on the screen?
+        ret     nz		; Yes ... ignore
+        ld      a,($20ef)	; Demo play flag
+        and     a		; Is demo playing?
+        jp      z,$L1652	; Yes ...
+        ld      a,($202d)	; Is fire button being held down?
+        and     a		; ...
+        jp      nz,$L1648	; Yes ... wait for bounce
+        call    $L17C0		; Read active player controls
+        and     $10		; Fire-button pressed?
+        ret     z		; No ... out
+        ld      a,$01		; Flag
+        ld      ($2025),a	; Flag shot active
+        ld      ($202d),a	; Flag that fire button is down
+        ret     		; Out
+L1648:  call    $L17C0		; Read active player controls
+        and     $10		; Fire-button pressed?
+        ret     nz		; Yes ... ignore
+        ld      ($202d),a	; Else ... clear flag
+        ret     		; Out
+; Handle demo (constant fire, parse demo commands)
+L1652:  ld      hl,$2025	; Demo fires ...
+        ld      (hl),$01	; ... constantly
+        ld      hl,($20ed)	; Demo command bufer
+        inc     hl		; Next position
+        ld      a,l		; Command buffer ...
+        cp      $7e		; ... wraps around
+        jp      c,$L1663	; ... Buffer from 1F74 to 1F7E
+        ld      l,$74		; ... overflow
+L1663:  ld      ($20ed),hl	; Next demo command
+        ld      a,(hl)	; Get next command
+        ld      ($201d),a	; Set command for movement
+        ret     		; Done
+
+L166B:  scf
+        ret
+
+L166D:  xor     a
+        call    $L1A8B
+L1671:  call    $L1910
+        ld      (hl),$00
+        call    $L09CA
+        inc     hl
+        ld      de,$20f5
+        ld      a,(de)
+        cp      (hl)
+        dec     de
+        dec     hl
+        ld      a,(de)
+        jp      z,$L168B
+        jp      nc,$L1698
+        jp      $L168F
+L168B:  cp      (hl)
+        jp      nc,$L1698
+L168F:  ld      a,(hl)
+        ld      (de),a
+        inc     de
+        inc     hl
+        ld      a,(hl)
+        ld      (de),a
+        call    $L1950
+L1698:  ld      a,($20ce)	; Number of players
+        and     a		; Is this a single player game?
+        jp      z,$L16C9	; Yes ... short message
+        ld      hl,$2803	; Screen coordinates
+        ld      de,ROM_MsgGameOver	; "GAME OVER PLAYER< >"
+        ld      c,$14		; 20 characters
+        call    $L0A93		; Print message
+        dec     h		; Back up ...
+        dec     h		; ... to player indicator
+        ld      b,$1b		; "1"
+        ld      a,(RAM_ActivePlayer)	; Player number
+        rrca    		; Is this player 1?
+        jp      c,$L16B7	; Yes ... keep the digit
+        ld      b,$1c		; Else ... set digit 2
+L16B7:  ld      a,b		; To A
+        call    $L08FF		; Print player number
+        call    $L0AB1		; Short delay
+        call    $L18E7
+        ld      a,(hl)
+        and     a
+        jp      z,$L16C9
+        jp      $L02ED
+;
+L16C9:  ld      hl,$2d18	; Screen coordinates
+        ld      de,ROM_MsgGameOver	; "GAME OVER PLAYER< >" 
+        ld      c,$0a		; Just the "GAME OVER" part
+        call    $L0A93		; Print message
+        call    $L0AB6		; Long delay
+        call    $L09D6		; Clear center window
+        xor     a
+        ld      ($20ef),a
+        out     ($05),a	; Sound
+        call    $L19D1		; Set 20E9 flag to 1
+        jp      $L0B89
+
+L16E6:  ld      sp,$2400	; Reset stack
+        ei      		; Enable interrupts
+        xor     a		; Flag ...
+        ld      ($2015),a	; ... player is shot
+L16EE:  call    $L14D8
+        ld      b,$04		; Player hit ...
+        call    TurnOnSounds	; ... sound
+        call    $L0A59		; Has flag been set?
+        jp      nz,$L16EE	; No ... wait for the flag
+        call    $L19D7
+        ld      hl,$2701
+        call    $L19FA
+        xor     a
+        call    $L1A8B
+        ld      b,$fb
+        jp      $L196B
+L170E:  call    $L09CA
+        inc     hl
+        ld      a,(hl)
+        ld      de,$1cb8 ; -- POSSIBLE LABEL --
+        ld      hl,$1aa1	; ; -- POSSIBLE LABEL --
+        ld      c,$04
+        ld      b,a
+L171C:  ld      a,(de)
+        cp      b
+        jp      nc,$L1727
+        inc     hl
+        inc     de
+        dec     c
+        jp      nz,$L171C
+L1727:  ld      a,(hl)
+        ld      ($20cf),a
+        ret
+
+;=============================================================
+; Shot sound on or off depending on 2025
+L172C:  ld      a,($2025)	; Player shot flag
+        cp      $00		; Active shot?
+        jp      nz,$L1739	; Yes ... go
+        ld      b,$fd		; Turn player shot ...
+        jp      TurnOffSounds	; ... sound off
+;
+L1739:  ld      b,$02		; Player shot ...
+        jp      TurnOnSounds	; ... sound on
+
+
+        nop
+        nop
+L1740:  ld      hl,$209b
+        dec     (hl)
+        call    z,$L176D
+        ld      a,($2068)
+        and     a
+        jp      z,$L176D
+        ld      hl,$2096
+        dec     (hl)
+        ret     nz
+
+        ld      hl,$2098
+        ld      a,(hl)
+        out     ($05),a	; Sound
+        ld      a,($2082)	; Number of aliens on active screen
+        and     a		; Is is zero?
+        jp      z,$L176D
+        dec     hl
+        ld      a,(hl)
+        dec     hl
+        ld      (hl),a
+        dec     hl
+        ld      (hl),$01
+        ld      a,$04
+        ld      ($209b),a
+        ret
+
+L176D:  ld      a,($2098)
+L1770:  and     $30
+        out     ($05),a	; Sound
+        ret
+
+;=============================================================
+;  ??? Called from game loop 
+L1775:  ld      a,($2095)
+        and     a
+        jp      z,$L17AA
+        ld      hl,$1a11 ; -- POSSIBLE LABEL --
+        ld      de,$1a21 ; -- POSSIBLE LABEL --
+        ld      a,($2082)
+L1785:  cp      (hl)
+        jp      nc,$L178E
+        inc     hl
+        inc     de
+        jp      $L1785
+L178E:  ld      a,(de)
+        ld      ($2097),a
+        ld      hl,$2098
+        ld      a,(hl)
+        and     $30
+        ld      b,a
+        ld      a,(hl)
+        and     $0f
+        rlca
+        cp      $10
+        jp      nz,$L17A4
+        ld      a,$01
+L17A4:  or      b
+        ld      (hl),a
+        xor     a		; Clear ...
+        ld      ($2095),a	; ... ??? something to do with shot
+L17AA:  ld      hl,$2099	; Sound timer for award extra ship
+        dec     (hl)		; Time ?
+        ret     nz		; No ... leave sound playing
+        ld      b,$ef		; Turn off ...
+        jp      TurnOffSounds	; ... extra ship sound
+
+;=============================================================
+        ld      b,$ef
+        ld      hl,$2098
+        ld      a,(hl)
+        and     b
+        ld      (hl),a
+        out     ($05),a	; Sound
+        ret
+
+        nop
+
+;=============================================================
+; Read control inputs for active player
+L17C0:  ld      a,(RAM_ActivePlayer)	; Get active player
+        rrca    		; Test player
+        jp      nc,$L17CA	; Player 2 ... read port 2
+        in      a,($01)	        ; Player 1 ... read port 1
+        ret     		; Out
+L17CA:  in      a,($02)	        ; Get controls for player 2
+        ret     		; Out
+
+;=============================================================
+; Check and handle TILT
+;+CheckAndHandleTilt
+L17CD:  in      a,($02)	        ; Read input port
+        and     $04		; Tilt?
+        ret     z		; No tilt ... return
+        ld      a,(RAM_IsTilt)	; Already in TILT handle?
+        and     a		; 1 = yes
+        ret     nz		; Yes ... ignore it now
+        ld      sp,$2400	; Reset stack
+        ld      b,$04		; Do this 4 times
+L17DC:  call    $L09D6		; Clear center window
+        dec     b		; All done?
+        jp      nz,$L17DC	; No ... do again
+        ld      a,$01		; Flag ...
+        ld      (RAM_IsTilt),a	; ... handling TILT
+        call    $L19D7
+        ei      		; Re-enable interrupts
+        ld      de,ROM_MsgTilt	; Message "TILT" 
+        ld      hl,$3016	; Center of screen
+        ld      c,$04		; Four letters
+        call    $L0A93		; Print "TILT"
+        call    $L0AB1		; Short delay
+        xor     a		; Zero
+        ld      (RAM_IsTilt),a	; TILT handle over
+        ld      ($2093),a
+        jp      $L16C9		; Handle game over for player
+
+;=============================================================
+; Called from game loop
+L1804:  ld      hl,$2084
+        ld      a,(hl)
+        and     a
+        jp      z,$L0707
+        inc     hl
+        ld      a,(hl)
+        and     a
+        ret     nz
+        ld      b,$01         ; UFO sound ...
+        jp      TurnOnSounds  ; ... on and repeats until stopped
+L1815:  ld      hl,$2810
+        ld      de,$1ca3 ; -- POSSIBLE LABEL --
+        ld      c,$15
+        call    $L08F3
+        ld      a,$0a
+        ld      ($206c),a
+        ld      bc,$1dbe ; -- POSSIBLE LABEL --
+L1828:  call    $L1856
+        jp      c,$L1837
+        call    $L1844
+        jp      $L1828
+        call    $L0AB1
+L1837:  ld      bc,$1dcf ; -- POSSIBLE LABEL --
+L183A:  call    $L1856
+        ret     c
+        call    $L184C
+        jp      $L183A
+;
+L1844:  push    bc
+        ld      b,$10
+        call    $L1439
+        pop     bc
+        ret
+;
+L184C:  push    bc
+        ld      a,($206c)
+        ld      c,a
+        call    $L0A93
+        pop     bc
+        ret
+
+;=============================================================
+L1856:  ld      a,(bc)
+        cp      $ff
+        scf
+        ret     z
+
+        ld      l,a
+        inc     bc
+        ld      a,(bc)
+        ld      h,a
+        inc     bc
+        ld      a,(bc)
+        ld      e,a
+        inc     bc
+        ld      a,(bc)
+        ld      d,a
+        inc     bc
+        and     a
+        ret
+
+L1868:  ld      hl,$20c2
+        inc     (hl)
+        inc     hl
+        ld      c,(hl)
+        call    $L01D9
+        ld      b,a
+        ld      a,($20ca)
+        cp      b
+        jp      z,$L1898
+        ld      a,($20c2)
+        and     $04
+        ld      hl,($20cc)
+        jp      nz,$L1888
+        ld      de,$0030 
+        add     hl,de
+L1888:  ld      ($20c7),hl
+        ld      hl,$20c5
+        call    $L1A3B
+        ex      de,hl
+        jp      $L15D3
+        nop
+        nop
+        nop
+L1898:  ld      a,$01
+        ld      ($20cb),a
+        ret
+
+L189E:  ld      hl,$2050
+        ld      de,$1bc0 ; -- POSSIBLE LABEL --
+        ld      b,$10
+        call    BlockMoveDEtoHL
+        ld      a,$02
+        ld      ($2080),a
+        ld      a,$ff
+        ld      ($207e),a
+        ld      a,$04
+        ld      ($20c1),a
+L18B8:  ld      a,($2055)
+        and     $01
+        jp      z,$L18B8
+L18C0:  ld      a,($2055)
+        and     $01
+        jp      nz,$L18C0
+        ld      hl,$3311
+        ld      a,$26
+        nop
+        call    $L08FF
+        jp      $L0AB6
+
+;=============================================================
+; Initializiation comes here
+;
+START:  ld      sp,$2400	; Set stack pointer just below screen
+        ld      b,$00		; Count 256 bytes
+        call    $L01E6		; Copy ROM to RAM
+        call    $L1956		; Print scores and credits
+L18DF:  ld      a,$08
+        ld      ($20cf),a
+        jp      $L0AEA
+
+;=============================================================
+; ??? See 1910
+L18E7:  ld      a,(RAM_ActivePlayer)	; Player indicator
+        ld      hl,$20e7	; Strange descriptor
+        rrca
+        ret     nc
+        inc     hl
+        ret
+
+L18F1:  ld      b,$02
+        ld      a,($2082)
+        dec     a
+        ret     nz
+        inc     b
+        ret
+
+;=============================================================
+; Add in bit for sound
+TurnOnSounds:
+        ld      a,($RAM_SoundPortValue)
+        or      b
+        ld      ($RAM_SoundPortValue),a
+        out     ($03),a	; Sound
+        ret
+
+L1904:  ld      hl,$2200
+        jp      $L01C3
+
+;=============================================================
+; Called from main game loop (collision detection for player shot ???)
+L190A:  call    $L14D8
+        jp      $L1597
+
+;=============================================================
+; ??? See 18E7
+L1910:  ld      hl,$20e7
+        ld      a,(RAM_ActivePlayer)	; Player 1 or 2
+        rrca    		; Test
+        ret     c		; Return if player 1
+        inc     hl		; Bump to next ???
+        ret     		; Return
+
+;=============================================================
+; Print score header " SCORE<1> HI-SCORE SCORE<2> "
+L191A:  ld      c,$1c		; 28 bytes in message
+        ld      hl,$241e	; Screen coordinates
+        ld      de,ROM_MsgScore	; Score header message
+        jp      $L08F3		; Print score header
+
+L1925:  ld      hl,$20f8	; Player 1 score descriptor
+        jp      $L1931		; Print score
+
+L192B:  ld      hl,$20fc	; Player 2 score descriptor
+        jp      $L1931		; Print score
+
+;=============================================================
+; Print score.
+; HL = descriptor
+L1931:  ld      e,(hl)	; Get score LSB
+        inc     hl		; Next
+        ld      d,(hl)	; Get score MSB
+        inc     hl		; Next
+        ld      a,(hl)	; Get coordinate LSB
+        inc     hl		; Next
+        ld      h,(hl)	; Get coordiante MSB
+        ld      l,a		; Set LSB
+        jp      $L09AD		; Print 4 digits in DE
+
+;=============================================================
+; Print message "CREDIT "
+L193C:  ld      c,$07		; 7 bytes in message
+        ld      hl,$3501	; Screen coordinates
+        ld      de,ROM_MsgCredit	; Message = "CREDIT " 
+        jp      $L08F3
+
+;=============================================================
+; Display number of credits on screen
+L1947:  ld      a,(RAM_NumCredits)	; Number of credits
+        ld      hl,$3c01	; Screen coordinates
+        jp      $L09B2		; Character to screen
+
+;=============================================================
+L1950:  ld      hl,$20f4	; Hi Score descriptor
+        jp      $L1931		; Print Hi-Score
+
+;=============================================================
+; Print scores (with header) and credits (with label)
+L1956:  call    $L1A5C		; Clear 2 rows on the screen
+        call    $L191A		; Print score header
+        call    $L1925		; Print player 1 score
+        call    $L192B		; Print player 2 score
+        call    $L1950		; Print hi score
+        call    $L193C		; Print credit lable
+        jp      $L1947		; Number of credits
+
+;=============================================================
+L196B:  call    TurnOffSounds  
+        jp      $L1671
+L1971:  ld      a,$01
+        ld      ($206d),a
+        jp      $L16E6
+
+L1979:  call    $L19D7		;
+        call    $L1947		; Display number of credits on screen
+        jp      $L193C		; Print message "CREDIT"
+
+L1982:  ld      ($20c1),a
+        ret
+
+        adc     a,e
+        add     hl,de
+L1988:  jp      $L09D6
+
+;=============================================================
+; Print "*TAITO CORPORATION*"
+        ld      hl,$2803	; Screen coordinates
+        ld      de,ROM_MsgTaitoCorp	; Message "*TAITO CORPORATION*" 
+        ld      c,$13		; Messgae length
+        jp      $L08F3		; Print message
+
+        nop
+        nop
+        nop
+        nop
+L199A:  ld      a,($201e)
+        and     a
+        jp      nz,$L19AC
+        in      a,($01)
+        and     $76
+        sub     $72
+        ret     nz
+        inc     a
+        ld      ($201e),a
+L19AC:  in      a,($01)
+        and     $76
+        cp      $34
+        ret     nz
+
+        ld      hl,$2e1b	; Coordinate
+        ld      de,ROM_MsgTaitoCop	; Message = "TAITO COP" 
+        ld      c,$09		; Message length
+        jp      $L08F3		; Print message
+
+ROM_MsgTaitoCorp: ; Text message "*TAITO CORPORATION*"
+        .db     $28,$13,$00,$08,$13,$0e,$26,$02,$0e,$11,$0f,$0e,$11
+        .db     $00,$13,$08,$0e,$0d,$28
+
+;=============================================================
+; Set 20E9 flag
+L19D1:  ld     a,$01		; Set 20e9
+L19D3:  ld     ($20e9),a	;
+        ret			;
+
+;=============================================================
+; Clear 20E9 flag
+L19D7:  xor     a		; Clear 20e9
+        jp      $L19D3		;
+        nop
+; TOPHER ... talk about this ... do we really save that much code space? it takes more time
+ 
+
+;=============================================================
+; Turn off bit in sound port
+TurnOffSounds:
+        ld      a,($RAM_SoundPortValue)
+        and     b
+        ld      ($RAM_SoundPortValue),a
+        out     ($03),a	    ; Sound
+        ret
+ 
+
+;=============================================================
+; Show ships remaining in hold for the player
+ShowShipsRemaining:    ; A=number of ships (Z set if none)
+
+        ld      hl,$2701	; Screen coordinates
+        jp      z,$L19FA	; None in reserve ... skip display
+; TOPHER Talk about this ... wouldn't it be better to check BEFORE loading HL ?
+
+; Draw line of ships
+L19EC:  ld      de,ROM_PlayerSprite	; Player sprite ; -- POSSIBLE LABEL --
+        ld      b,$10		; 16 rows
+        ld      c,a		; Hold count
+        call    $L1439		; Display 1byte sprite to screen
+        ld      a,c		; Restore remaining
+        dec     a		; All done?
+        jp      nz,$L19EC	; No ... keep going
+; Clear remainder of line
+L19FA:  ld      b,$10		; 16 rows
+        call    $L14CB		; Clear 1byte sprite at HL
+        ld      a,h		; Get Y coordinate
+        cp      $35		; At edge?
+        jp      nz,$L19FA	; No ... do all
+        ret
+
+
+;=============================================================
+; Compare upper bit at [DE] with upper bit at [2072]
+; CF=0 if they are different. CF=1 if they are the same.
+L1A06:  ld      hl,$2072
+        ld      b,(hl)
+        ld      a,(de)
+        and     $80
+        xor     b
+        ret     nz
+        scf
+        ret
+
+L1A11:  .db     $32,$2b,$24,$1c,$16,$11,$0d,$0a,$08,$07,$06,$05,$04,$03,$02,$01
+L1A21:  .db     $34,$2e,$27,$22,$1c,$18,$15,$13,$10,$0e,$0d,$0c,$0b,$09,$07,$05
+        .db     $ff
+
+;=============================================================
+; Copy from [DE] to [HL] (b bytes)
+BlockMoveDEtoHL:
+        ld      a,(de)	        ; Copy from [DE] to ...
+        ld      (hl),a	        ; ... [HL]
+        inc     hl		;
+        inc     de		;
+        dec     b		; Count in B
+        jp      nz,BlockMoveDEtoHL	; Do all
+        ret
+
+;=============================================================
+; Load 5 bytes from [HL] and hold them in this order:
+; edlhb
+L1A3B:  ld      e,(hl)
+        inc     hl
+        ld      d,(hl)
+        inc     hl
+        ld      a,(hl)
+        inc     hl
+        ld      c,(hl)
+        inc     hl
+        ld      b,(hl)
+        ld      h,c
+        ld      l,a
+        ret
+
+;=============================================================
+; Convert from pixel number to screen coordinates (without shift)
+; Shift HL right 3 bits (clearing the top 2 bits)
+; and set the third bit from the left.
+L1A47:  push    bc
+        ld      b,$03
+L1A4A:  ld      a,h
+        rra
+        ld      h,a
+        ld      a,l
+        rra
+        ld      l,a
+        dec     b
+        jp      nz,$L1A4A
+        ld      a,h
+        and     $3f
+        or      $20
+        ld      h,a
+        pop     bc
+        ret
+
+;=============================================================
+; Clear 2 rows on the screen (2 vertical lines when rotated)
+L1A5C:  ld      hl,$2400	; Screen coordinate
+L1A5F:  ld      (hl),$00	; Clear it
+        inc     hl		; Next byte
+        ld      a,h		; Have we done ...
+        cp      $40		; ... 2 rows?
+        jp      nz,$L1A5F	; No ... keep going
+        ret     		; Out
+
+;=============================================================
+; Logically OR a sprite onto the screen
+; DE = sprite
+; HL = screen
+; C = bytes per row
+; B = number of rows
+L1A69:  push    bc		; Preserve BC
+        push    hl		; Hold for a bit
+L1A6B:  ld      a,(de)	; From sprite
+        or      (hl)		; OR with screen
+        ld      (hl),a	; Back to screen
+        inc     de		; Next sprite
+        inc     hl		; Next on screen
+        dec     c		; Row done?
+        jp      nz,$L1A6B	; No ... do entire row
+        pop     hl		; Original start
+        ld      bc,$0020	; Bump HL by ... ; -- POSSIBLE LABEL --
+        add     hl,bc		; ... one screen row
+        pop     bc		; Restore
+        dec     b		; Row counter
+        jp      nz,$L1A69	; Do all rows
+        ret
+
+;=============================================================
+; Remove a ship from the players stash and update the
+; hold indicators on the screen.
+L1A7F:  call    $L092E		; Get last byte from player data
+        and     a		; Is it 0?
+        ret     z		; Skip
+        push    af		; Preserve number remaining
+        dec     a		; Remove a ship from the stash
+        ld      (hl),a	; New number of ships
+        call ShowShipsRemaining		; Draw the line of ships
+        pop     af		; Restore number
+L1A8B:  ld      hl,$2501	; Screen coordinates
+        and     $0f		; Make sure it is a digit
+        jp      $L09C5		; Print number remaining
+
+;==========================================================
+
+          .db    $00,$00
+
+L1A95:    .db    $00,$00,$ff,$b8,$fe,$20,$1c,$10,$9e,$00,$20,$1c
+
+L1AA1:    .db    $30,$10,$0b,$08
+          .db    $07
+
+ROM_MsgGameOver: ; Text message "GAME OVER PLAYER< >"
+          .db    $06,$00,$0c,$04,$26,$0e,$15,$04,$11,$26,$26,$0f
+          .db    $0b,$00,$18,$04,$11,$24,$26,$25
+
+ROM_Msg1or2: ; Test message "1 OR 2PLAYERS BUTTON "
+          .db    $1b,$26,$0e,$11,$26,$1c,$0f,$0b,$00,$18,$04
+          .db    $11,$12,$26,$01,$14,$13,$13,$0e,$0d,$26
+
+ROM_MsgOnly1: ; Text Message "ONLY 1PLAYER BUTTON "
+          .db    $0e,$0d,$0b,$18,$26,$1b,$0f,$0b,$00,$18,$04,$11,$26,$26
+          .db    $01,$14,$13,$13,$0e,$0d,$26
+
+ROM_MsgScore: ; Text message [28 bytes] " SCORE<1> HI-SCORE SCORE<2>"
+          .db    $26,$12,$02,$0e,$11,$04,$24,$1b,$25,$26,$07,$08
+          .db    $3f,$12,$02,$0e,$11,$04,$26,$12,$02,$0e,$11,$04
+          .db    $24,$1c,$25,$26
+;
+; Coppied to start of RAM ($2000) as initialization
+
+ROM_RAMInit: ; 1B00
+          .db    $01
+          .db    $00
+          .db    $00
+          .db    $10,$00
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $02
+          .db    $78
+          .db    $38,$78
+          .db    $38,$00
+          .db    $f8
+          .db    $00
+;
+L1B10:    .db    $00
+          .db    $80
+          .db    $00
+          .db    $8e
+          .db    $02
+          .db    $ff
+          .db    $05
+          .db    $0c
+;
+; Active player descriptor
+          .db    $60,$1c
+          .db    $20,$30
+          .db    $10
+;
+          .db    $01
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $bb
+          .db    $03
+;
+; Active player shot descriptor
+L1B25:    .db    $00
+          .db    $10,$90,$1c,$28,$30,$01,$04
+;
+          .db    $00
+          .db    $ff
+          .db    $ff
+L1B30:    .db    $00
+          .db    $00
+L1B32:    .db    $02
+          .db    $76
+          .db    $04
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $04
+          .db    $ee,$1c
+          .db    $00
+          .db    $00
+          .db    $03
+L1B40:    .db    $00
+          .db    $00
+          .db    $00
+          .db    $b6
+          .db    $04
+          .db    $00
+          .db    $00
+          .db    $01,$00,$1d
+          .db    $04
+          .db    $e2,$1c,$00
+          .db    $00
+          .db    $03
+L1B50:    .db    $00
+          .db    $00
+          .db    $00
+          .db    $82
+          .db    $06,$00
+          .db    $00
+          .db    $01,$06,$1d
+          .db    $04
+          .db    $d0
+          .db    $1c
+          .db    $00
+          .db    $00
+          .db    $03
+          .db    $ff
+          .db    $00
+;
+; Exploding alien descriptor
+          .db    $c0,$1c
+          .db    $00,$00
+          .db    $10
+;
+          .db    $21
+          .db    $01,$00,$30
+          .db    $00
+          .db    $12
+          .db    $00
+          .db    $00
+          .db    $00
+L1B70:    .db    $0f
+          .db    $0b
+          .db    $00
+          .db    $18,$26
+          .db    $0f
+          .db    $0b
+          .db    $00
+          .db    $18,$04
+          .db    $11,$24,$1b
+          .db    $25
+          .db    $fc,$00,$01
+          .db    $ff
+          .db    $ff
+;
+L1B83:    .db    $00
+          .db    $00
+          .db    $00
+          .db    $20
+;
+          .db    $64
+          .db    $1d
+          .db    $d0
+          .db    $29
+          .db    $18
+;
+          .db    $02
+          .db    $54
+          .db    $1d
+          .db    $00
+          .db    $08
+          .db    $00
+          .db    $06,$00
+          .db    $00
+          .db    $01,$40,$00
+          .db    $01,$00,$00
+          .db    $10,$9e
+          .db    $00
+          .db    $20,$1c
+          .db    $00
+          .db    $03
+          .db    $04
+          .db    $78
+          .db    $14
+          .db    $13
+          .db    $08
+          .db    $1a
+          .db    $3d
+          .db    $68
+          .db    $fc,$fc,$68
+          .db    $3d
+          .db    $1a
+          .db    $00
+;
+L1BB0:    .db    $00
+          .db    $00
+          .db    $01,$b8,$98
+          .db    $a0
+          .db    $1b
+          .db    $10,$ff
+          .db    $00
+          .db    $a0
+          .db    $1b
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $00
+
+; END OF 0xC0 bytes of RAM MIRROR
+
+L1BC0:    .db    $00
+          .db    $10,$00
+          .db    $0e,$05
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $07
+          .db    $d0
+          .db    $1c
+          .db    $c8
+          .db    $9b
+          .db    $03
+          .db    $00
+          .db    $00
+          .db    $03
+          .db    $04
+          .db    $78
+          .db    $14
+          .db    $0b
+          .db    $19
+          .db    $3a,$6d,$fa
+          .db    $fa,$6d,$3a
+          .db    $19
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $01,$00,$00
+          .db    $01
+;
+          .db    $74,$1f
+;
+          .db    $00
+          .db    $80
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $00,$00,$1c,$2f
+          .db    $00,$00,$1c,$27
+
+          .db    $00,$00,$1C,$39
+
+; END of 256-byte RAM mirror
+
+
+
+ROM_AlienSprites: 
+
+; Alien sprite type A,B, and C at positions 0
+          .db    $00,$00,$39,$79,$7a,$6e,$ec,$fa,$fa,$ec,$6e,$7a,$79,$39,$00,$00
+          .db    $00,$00,$00,$78,$1d,$be,$6c,$3c,$3c,$3c,$6c,$be,$1d,$78,$00,$00
+          .db    $00,$00,$00,$00,$19,$3a,$6d,$fa,$fa,$6d,$3a,$19,$00,$00,$00,$00
+
+; Alien sprite type A,B, and C at positions 1
+          .db    $00,$00,$38,$7a,$7f,$6d,$ec,$fa,$fa,$ec,$6d,$7f,$7a,$38,$00,$00
+          .db    $00,$00,$00,$0e,$18,$be,$6d,$3d,$3c,$3d,$6d,$be,$18,$0e,$00,$00
+          .db    $00,$00,$00,$00,$1a,$3d,$68,$fc,$fc,$68,$3d,$1a,$00,$00,$00,$00
+
+ROM_PlayerSprite:
+          .db    $00,$00,$0f,$1f,$1f,$1f,$1f,$7f,$ff,$7f,$1f,$1f,$1f,$1f,$0f,$00
+
+
+
+L1C70:    .db    $00
+          .db    $04
+          .db    $01,$13,$03
+          .db    $07
+          .db    $b3
+          .db    $0f
+          .db    $2f
+          .db    $03
+          .db    $2f
+          .db    $49
+          .db    $04
+          .db    $03
+          .db    $00
+          .db    $01,$40,$08
+          .db    $05
+          .db    $a3
+          .db    $0a
+          .db    $03
+          .db    $5b
+          .db    $0f
+          .db    $27
+          .db    $27
+          .db    $0b
+          .db    $4b
+          .db    $40
+          .db    $84
+          .db    $11,$48,$0f
+          .db    $99
+          .db    $3c
+          .db    $7e
+          .db    $3d
+          .db    $bc
+          .db    $3e,$7c
+          .db    $99
+          .db    $27
+          .db    $1b
+          .db    $1a
+          .db    $26,$0f
+          .db    $0e,$08
+          .db    $0d
+          .db    $13
+          .db    $12
+L1CA3:    .db    $28,$12
+          .db    $02
+          .db    $0e,$11
+          .db    $04
+          .db    $26,$00
+          .db    $03
+          .db    $15
+          .db    $00
+          .db    $0d
+          .db    $02
+          .db    $04
+          .db    $26,$13
+          .db    $00
+          .db    $01,$0b,$04
+          .db    $28
+;
+L1CB8:    .db    $02,$10,$20,$30
+
+
+ROM_MsgTilt: ; Text message: "TILT"
+          .db    $13,$08,$0b,$13
+;
+; Alien exploding sprite
+          .db    $00,$08,$49,$22,$14,$81,$42,$00,$42,$81,$14,$22,$49,$08,$00,$00
+;
+          .db    $44
+          .db    $aa
+          .db    $10,$88
+          .db    $54
+          .db    $22,$10,$aa
+          .db    $44
+          .db    $22,$54,$88
+L1CDC:    .db    $4a
+          .db    $15
+          .db    $be
+          .db    $3f
+          .db    $5e
+          .db    $25
+          .db    $04
+          .db    $fc,$04,$10
+          .db    $fc,$10,$20
+          .db    $fc,$20,$80
+          .db    $fc,$80,$00
+          .db    $fe,$00
+          .db    $24
+          .db    $fe,$12
+          .db    $00
+          .db    $fe,$00
+          .db    $48
+          .db    $fe,$90
+L1CFA:    .db    $0f
+          .db    $0b
+          .db    $00
+          .db    $29
+          .db    $00
+          .db    $00
+          .db    $01,$07,$01
+          .db    $01,$01,$04
+          .db    $0b
+          .db    $01,$06,$03
+          .db    $01,$01,$0b
+          .db    $09
+          .db    $02
+          .db    $08
+          .db    $02
+          .db    $0b
+          .db    $04
+          .db    $07
+          .db    $0a
+          .db    $05
+          .db    $02
+          .db    $05
+          .db    $04
+          .db    $06,$07 
+          .db    $08
+          .db    $0a
+          .db    $06,$0a
+          .db    $03
+L1D20:    .db    $ff
+          .db    $0f
+          .db    $ff
+          .db    $1f
+          .db    $ff
+          .db    $3f
+          .db    $ff
+          .db    $7f
+          .db    $ff
+          .db    $ff
+          .db    $fc,$ff,$f8
+          .db    $ff
+          .db    $f0
+          .db    $ff
+          .db    $f0
+          .db    $ff
+          .db    $f0
+          .db    $ff
+          .db    $f0
+          .db    $ff
+          .db    $f0
+          .db    $ff
+          .db    $f0
+          .db    $ff
+          .db    $f0
+          .db    $ff
+          .db    $f8
+          .db    $ff
+          .db    $fc,$ff,$ff
+          .db    $ff
+          .db    $ff
+          .db    $ff
+          .db    $ff
+          .db    $7f
+          .db    $ff
+          .db    $3f
+          .db    $ff
+          .db    $1f
+          .db    $ff
+          .db    $0f
+L1D4C:    .db    $05
+          .db    $10,$15
+          .db    $30,$94
+          .db    $97
+          .db    $9a
+          .db    $9d
+          .db    $10,$05
+          .db    $05
+          .db    $10,$15
+          .db    $10,$10
+          .db    $05
+          .db    $30,$10
+          .db    $10,$10
+          .db    $05
+          .db    $15
+          .db    $10,$05
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $04
+          .db    $0c
+          .db    $1e,$37
+          .db    $3e,$7c
+          .db    $74
+          .db    $7e
+          .db    $7e
+          .db    $74
+          .db    $7c
+          .db    $3e,$37
+          .db    $1e,$0c
+          .db    $04
+          .db    $00
+          .db    $00
+          .db    $00
+          .db    $00
+L1D7C:    .db    $00
+          .db    $22,$00,$a5
+          .db    $40
+          .db    $08
+          .db    $98
+          .db    $3d
+          .db    $b6
+          .db    $3c
+          .db    $36,$1d
+          .db    $10,$48
+          .db    $62
+          .db    $b6
+          .db    $1d
+          .db    $98
+          .db    $08
+          .db    $42
+          .db    $90
+          .db    $08
+          .db    $00
+          .db    $00
+          .db    $26,$1f
+          .db    $1a
+          .db    $1b
+          .db    $1a
+          .db    $1a
+          .db    $1b
+          .db    $1f
+          .db    $1a
+          .db    $1d
+          .db    $1a
+          .db    $1a
+
+L1DA0:    .db    $10
+          .db    $20
+L1DA2:    .db    $30
+          .db    $60
+          .db    $50
+          .db    $48
+          .db    $48
+          .db    $48
+          .db    $40
+          .db    $40
+          .db    $40
+L1DAB:    .db    $0f
+          .db    $0b
+          .db    $00
+          .db    $18,$12
+          .db    $0f
+          .db    $00
+          .db    $02
+          .db    $04
+          .db    $26,$26
+          .db    $08
+          .db    $0d
+          .db    $15
+          .db    $00
+          .db    $03
+          .db    $04
+          .db    $11,$12,$0e
+          .db    $2c
+          .db    $68
+          .db    $1d
+          .db    $0c
+          .db    $2c
+          .db    $20,$1c
+          .db    $0a
+          .db    $2c
+          .db    $40
+          .db    $1c
+          .db    $08
+          .db    $2c
+          .db    $00
+          .db    $1c
+          .db    $ff
+L1DCF:    .db    $0e,$2e
+          .db    $e0
+          .db    $1d
+          .db    $0c
+          .db    $2e,$ea
+          .db    $1d
+          .db    $0a
+          .db    $2e,$f4
+          .db    $1d
+          .db    $08
+          .db    $2e,$99
+          .db    $1c
+          .db    $ff
+          .db    $27
+          .db    $38,$26
+          .db    $0c
+          .db    $18,$12
+          .db    $13
+          .db    $04
+          .db    $11,$18,$27
+          .db    $1d
+          .db    $1a
+          .db    $26,$0f
+          .db    $0e,$08
+          .db    $0d
+          .db    $13
+          .db    $12
+          .db    $27
+          .db    $1c
+          .db    $1a,$26,$0f,$0e,$08,$0d,$13,$12,$00,$00
+
+
+
+ROM_TextSprites: ; 8 byte sprites
+          .db    $00,$1f,$24,$44,$24,$1f,$00,$00
+          .db    $00,$7f,$49,$49,$49,$36,$00,$00
+          .db    $00,$3e,$41,$41,$41,$22,$00,$00
+          .db    $00,$7f,$41,$41,$41,$3e,$00,$00
+          .db    $00,$7f,$49,$49,$49,$41,$00,$00
+
+          .db    $00,$7f,$48,$48,$48,$40,$00,$00
+;     00    ; ........
+;     7f    ; .*******
+;     48    ; .*..*...
+;     48    ; .*..*...
+;     48    ; .*..*...
+;     40    ; .*......
+;     00    ; ........
+;     00    ; ........
+
+          .db    $00,$3e,$41,$41,$45,$47,$00,$00
+          .db    $00,$7f,$08,$08,$08,$7f,$00,$00
+          .db    $00,$00,$41,$7f,$41,$00,$00,$00
+          .db    $00,$02,$01,$01,$01,$7e,$00,$00
+          .db    $00,$7f,$08,$14,$22,$41,$00,$00
+          .db    $00,$7f,$01,$01,$01,$01,$00,$00
+          .db    $00,$7f,$20,$18,$20,$7f,$00,$00
+          .db    $00,$7f,$10,$08,$04,$7f,$00,$00
+          .db    $00,$3e,$41,$41,$41,$3e,$00,$00
+          .db    $00,$7f,$48,$48,$48,$30,$00,$00
+          .db    $00,$3e,$41,$45,$42,$3d,$00,$00
+          .db    $00,$7f,$48,$4c,$4a,$31,$00,$00
+          .db    $00,$32,$49,$49,$49,$26,$00,$00
+          .db    $00,$40,$40,$7f,$40,$40,$00,$00
+          .db    $00,$7e,$01,$01,$01,$7e,$00,$00
+          .db    $00,$7c,$02,$01,$02,$7c,$00,$00
+          .db    $00,$7f,$02,$0c,$02,$7f,$00,$00
+          .db    $00,$63,$14,$08,$14,$63,$00,$00
+          .db    $00,$60,$10,$0f,$10,$60,$00,$00
+          .db    $00,$43,$45,$49,$51,$61,$00,$00
+          .db    $00,$3e,$45,$49,$51,$3e,$00,$00
+          .db    $00,$00,$21,$7f,$01,$00,$00,$00
+          .db    $00,$23,$45,$49,$49,$31,$00,$00
+          .db    $00,$42,$41,$49,$59,$66,$00,$00
+          .db    $00,$0c,$14,$24,$7f,$04,$00,$00
+          .db    $00,$72,$51,$51,$51,$4e,$00,$00
+          .db    $00,$1e,$29,$49,$49,$46,$00,$00
+          .db    $00,$40,$47,$48,$50,$60,$00,$00
+          .db    $00,$36,$49,$49,$49,$36,$00,$00
+          .db    $00,$31,$49,$49,$4a,$3c,$00,$00
+          .db    $00,$08,$14,$22,$41,$00,$00,$00
+          .db    $00,$00,$41,$22,$14,$08,$00,$00
+          .db    $00,$00,$00,$00,$00,$00,$00,$00
+          .db    $00,$14,$14,$14,$14,$14,$00,$00
+          .db    $00,$22,$14,$7f,$14,$22,$00,$00
+          .db    $00,$03,$04,$78,$04,$03,$00,$00
+
+
+;
+          .db    $24,$1b,$26,$0e,$11,$26,$1c,$26
+          .db    $0f,$0b,$00,$18,$04,$11,$12,$25
+          .db    $26,$26,$28,$1b,$26,$0f,$0b,$00
+          .db    $18,$04,$11,$26,$26,$1b,$26,$02
+          .db    $0e,$08,$0d,$26
+;
+; Demo movement commands (1=Right, 2=Left)
+          .db    $01,$01,$00,$00,$01,$00,$02,$01,$00,$02,$01
+;
+          .db    $00
+          .db    $60,$10,$0f,$10,$60,$30,$18,$1a
+          .db    $3d,$68,$fc,$fc,$68,$3d,$1a,$00
+
+
+ROM_MsgInsertCoin: ; Text message "INSERT  COIN"
+          .db    $08,$0d,$12,$04,$11,$13,$26,$26
+          .db    $02,$0e,$08,$0d
+;
+L1F9C:    .db    $0d,$2a,$50,$1f
+L1FA0:    .db    $0a,$2a,$62,$1f,$07,$2a,$e1,$1f
+          .db    $ff
+
+
+ROM_MsgCredit: ; Text Message "CREDIT "
+          .db    $02,$11,$04,$03,$08,$13,$26
+;
+          .db    $00,$60,$10,$0f,$10,$60,$38,$19
+          .db    $3a,$6d,$fa,$fa,$6d,$3a,$19,$00
+;
+          .db    $00,$20,$40,$4d,$50,$20,$00,$00
+          .db    $00,$00,$00,$ff,$b8,$ff,$80,$1f
+          .db    $10,$97,$00,$80,$1f,$00,$00,$01
+          .db    $d0,$22,$20,$1c,$10,$94,$00,$20
+;
+          .db    $1c,$28,$1c,$26,$0f,$0b,$00,$18
+          .db    $04,$11,$12,$26,$1c,$26,$02,$0e
+          .db    $08,$0d,$12
+
+ROM_MsgPush: ; Text message "PUSH "
+          .db    $0f,$14,$12,$07,$26
+;
+          .db    $00,$08,$08,$08,$08,$08,$00,$00
+
+               .end

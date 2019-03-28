@@ -1,0 +1,57 @@
+
+Room: c1Fountain
+
+Set: PersonInRoom to False
+
+Description: "c1FountainA.wav:Cole: You are standing in front of the fountains. Press 8 to go back inside."
+  
+if TreeLevel is 1  
+  Description: "c1FountainB.wav:Cole: A shrivled plant gasps for water."
+if TreeLevel is 2 
+  Description: "c1FountainC.wav:Cole: A small thirsty tree reaches skyward."
+if TreeLevel is 3  
+  Description: 
+  "c1FountainD.wav:Cole: A fully grown tree stretches to the 4th floor of the building.
+   Press 1 to climb up."
+
+Decision: 8 c1Lobby
+if TreeLevel is 1 AND WaterGunLevel is Full Decision: 5 c1GrowTreeA
+if TreeLevel is 2 AND WaterGunLevel is Full Decision: 5 c1GrowTreeB
+if TreeLevel is 3 AND WaterGunLevel is Full Decision: 1 c1ClimbUpTree
+
+*include* c1DefaultActions
+
+
+
+
+Room: c1GrowTreeA
+
+Set: TreeLevel to 2
+
+Description: 
+    "c1FountainE.wav: ColeMoody: You squirt water on the plant and it
+     bursts to life and grows 15 feet before your eyes."
+
+Decision: !GOTO! c1EmptyGun
+
+
+
+
+Room: c1GrowTreeB
+
+Set: TreeLevel to 3
+
+Description: 
+    "c1FountainG.wav: ColeMoody: You squirt water on the tree again and 
+      it shutters and shoots up so tall and fast that it bursts through 
+      a window on the 4th floor."
+
+Decision: !GOTO! c1EmptyGun
+
+
+Room: c1ClimbUpTree
+
+Decision: !GOTO! !END!
+
+
+

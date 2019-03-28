@@ -1,0 +1,631 @@
+TicTacToe.asm line 0019: Forward reference in equate: (x3000)
+TicTacToe.asm line 0020: Forward reference in equate: (x4000)
+0001   0000             
+0002   0000             processor 6502
+TicTacToe.asm line 0002: Label not found: (processor)
+TicTacToe.asm line 0002: label value misalligned.           (processor)
+TicTacToe.asm line 0002: unrecognized directive.            (processor)
+0003   0000             
+0004   0000             ;<EditorTab name="BUILD">
+0005   0000             ; *** Complie the assembly
+0006   0000             ; build-command java Blend TicTacToe.asm TTT2.asm
+0007   0000             ; build-command tasm -fFF -b -65 TTT2.asm TTT2.bin
+0008   0000             
+0009   0000             ; *** Split the resulting binary into the 3 EPROMs needed by MAME
+0010   0000             ; build-command java EpromTool -split TTT2.bin 035145.02 035144.02 035143.02
+0011   0000             
+0012   0000             ; *** Copy results to the MAME directory for running
+0013   0000             ; build-command jar -cfM c:\mame\roms\asteroid.zip *.02
+0014   0000             
+0015   0000             ;</EditorTab>
+0016   0000             
+0017   0000             
+0018   0000             ;<EditorTab name="DVG">
+TicTacToe.asm line 0019: Forward reference in equate: (x3000)
+0019   0000             DVG_Trigger  .equ 0x3000
+TicTacToe.asm line 0020: Forward reference in equate: (x4000)
+0020   0000             DVG_RAM      .equ 0x4000
+0021   0000             ;</EditorTab>
+0022   0000             
+0023   0000             ;<EditorTab name="RAM">
+0024   0000             RAM_CellData .equ 0 
+0025   0000             RAM_LineData .equ 9
+0026   0000             
+0027   0000             RAM_Temp     .equ 20
+0028   0000             ;</EditorTab>
+0029   0000             
+TicTacToe.asm line 0030: Label not found: (xF800)
+0030   20000                 .org  0xF800
+0031   20000             
+0032   20000             ;<EditorTab name="main">
+0033   20000             main() {
+TicTacToe.asm line 0033: Label not found: (main)
+TicTacToe.asm line 0033: label value misalligned.           (main())
+TicTacToe.asm line 0033: unrecognized directive.            (main())
+0034   20000              
+0035   20000             
+0036   20000             ; Wait for the DVG to finish
+0037   20000             
+0038   20000               X = #16*7
+TicTacToe.asm line 0038: unrecognized instruction.          (X)
+0039   20000               do {
+TicTacToe.asm line 0039: unrecognized instruction.          (DO)
+0040   20000                 A = SnapShot[X]
+TicTacToe.asm line 0040: unrecognized instruction.          (A)
+0041   20000                 $4000[X] = A
+TicTacToe.asm line 0041: unrecognized directive.            ($4000[X])
+0042   20000               } while(X!=0)
+TicTacToe.asm line 0042: unrecognized directive.            (})
+0043   20000             
+0044   20000               do {
+TicTacToe.asm line 0044: unrecognized instruction.          (DO)
+0045   20000                 A = $2002
+TicTacToe.asm line 0045: unrecognized instruction.          (A)
+0046   20000               } while(A>127) 
+TicTacToe.asm line 0046: unrecognized directive.            (})
+0047   20000             
+0048   20000               
+0049   20000             
+0050   20000             
+0051   20000             ;  MakeVectorList()
+0052   20000             ;  DVG_Trigger = A
+0053   20000             
+0054   20000             ;  do {
+0055   20000             ;  } while(true)
+0056   20000             
+0057   20000             }
+TicTacToe.asm line 0057: unrecognized directive.            (})
+0058   20000             ;</EditorTab>
+0059   20000             
+0060   20000             ;<EditorTab name="MakeVectorList">
+0061   20000             
+0062   20000             RollFlashPattern() { ; A = pattern in/out
+TicTacToe.asm line 0062: Label not found: (RollFlashPattern)
+TicTacToe.asm line 0062: label value misalligned.           (RollFlashPattern())
+TicTacToe.asm line 0062: unrecognized directive.            (RollFlashPattern())
+0063   20000             
+0064   20000               X = A          ; Hold this
+TicTacToe.asm line 0064: unrecognized instruction.          (X)
+0065   20000               A = A & 0x0F   ; Get lower two four ...
+TicTacToe.asm line 0065: unrecognized instruction.          (A)
+0066   20000               RAM_Temp = A   ; ... to temporary
+TicTacToe.asm line 0066: unrecognized instruction.          (RAM_TEMP)
+0067   20000               A = X          ; Original value back
+TicTacToe.asm line 0067: unrecognized instruction.          (A)
+0068   20000             
+0069   20000               A = A & 0xF0     ; Drop the lower four bits
+TicTacToe.asm line 0069: unrecognized instruction.          (A)
+0070   20000 0A            ASL A            ; Shift the flash part to the left
+0071   20001               if(CARRY_SET) {  ; If we shifted out a one ...
+TicTacToe.asm line 0071: unrecognized instruction.          (IF(CARRY_SET))
+0072   20001                 A = A | 0x10   ; ... move it back in on the right
+TicTacToe.asm line 0072: unrecognized instruction.          (A)
+0073   20001               }
+TicTacToe.asm line 0073: unrecognized directive.            (})
+0074   20001             
+0075   20001               A = A & RAM_Temp   ; Restore the lower two bits
+TicTacToe.asm line 0075: unrecognized instruction.          (A)
+0076   20001             
+0077   20001             }
+TicTacToe.asm line 0077: unrecognized directive.            (})
+0078   20001             
+0079   20001             ProcessLine() { ; A = line data, Y=commands for line, X=RAM offset
+TicTacToe.asm line 0079: Label not found: (ProcessLine)
+TicTacToe.asm line 0079: label value misalligned.           (ProcessLine())
+TicTacToe.asm line 0079: unrecognized directive.            (ProcessLine())
+0080   20001               A = A & 0x83 ; Top bit and bottom two
+TicTacToe.asm line 0080: unrecognized instruction.          (A)
+0081   20001               if(A>0x80) {
+TicTacToe.asm line 0081: unrecognized instruction.          (IF(A>0X80))
+0082   20001                 DVG_CopySequence() ; Draw the win line
+TicTacToe.asm line 0082: unrecognized instruction.          (DVG_COPYSEQUENCE())
+0083   20001               }
+TicTacToe.asm line 0083: unrecognized directive.            (})
+0084   20001             }
+TicTacToe.asm line 0084: unrecognized directive.            (})
+0085   20001             
+0086   20001             ProcessCell() { ; A=Cell data, Y=center DVG commands for cell, X=RAM offset
+TicTacToe.asm line 0086: Label not found: (ProcessCell)
+TicTacToe.asm line 0086: label value misalligned.           (ProcessCell())
+TicTacToe.asm line 0086: unrecognized directive.            (ProcessCell())
+0087   20001               A = A & 0x83 ; Top bit and bottom two
+TicTacToe.asm line 0087: unrecognized instruction.          (A)
+0088   20001               if(A>0x80) {
+TicTacToe.asm line 0088: unrecognized instruction.          (IF(A>0X80))
+0089   20001                 DVG_CopySequence() ; Center the cell
+TicTacToe.asm line 0089: unrecognized instruction.          (DVG_COPYSEQUENCE())
+0090   20001                 if(A==0x81) {
+TicTacToe.asm line 0090: unrecognized instruction.          (IF(A=)
+0091   20001                   Y = DVG_X_Commands - DVG_BoardCommands
+TicTacToe.asm line 0091: unrecognized instruction.          (Y)
+0092   20001                 } else {
+TicTacToe.asm line 0092: unrecognized directive.            (})
+0093   20001                   Y = DVG_O_Commands - DVG_BoardCommands
+TicTacToe.asm line 0093: unrecognized instruction.          (Y)
+0094   20001                 }
+TicTacToe.asm line 0094: unrecognized directive.            (})
+0095   20001                 DVG_CopySequence() ; X or O
+TicTacToe.asm line 0095: unrecognized instruction.          (DVG_COPYSEQUENCE())
+0096   20001               }
+TicTacToe.asm line 0096: unrecognized directive.            (})
+0097   20001             }
+TicTacToe.asm line 0097: unrecognized directive.            (})
+0098   20001             
+0099   20001             ; This routine builds the vector command list from the state of the game
+0100   20001             ; cells and lines
+0101   20001             ;
+0102   20001             MakeVectorList() {
+TicTacToe.asm line 0102: Label not found: (MakeVectorList)
+TicTacToe.asm line 0102: label value misalligned.           (MakeVectorList())
+TicTacToe.asm line 0102: unrecognized directive.            (MakeVectorList())
+0103   20001             
+0104   20001             ; In the real hardware, trigger the draw, wait, then do this
+0105   20001             
+0106   20001               X = 0 ; Start of RAM
+TicTacToe.asm line 0106: unrecognized instruction.          (X)
+0107   20001             
+0108   20001             ; First draw the 4 lines of the board
+0109   20001             
+0110   20001               Y = 0 ; DVG_BoardCommands offset
+TicTacToe.asm line 0110: unrecognized instruction.          (Y)
+0111   20001               DVG_CopySequence()
+TicTacToe.asm line 0111: unrecognized instruction.          (DVG_COPYSEQUENCE())
+0112   20001             
+0113   20001             ; Draw the 9 cells
+0114   20001             
+0115   20001               A = RAM_CellData[0]
+TicTacToe.asm line 0115: unrecognized instruction.          (A)
+0116   20001               Y = DVG_CenterCell0 - DVG_BoardCommands
+TicTacToe.asm line 0116: unrecognized instruction.          (Y)
+0117   20001               ProcessCell()
+TicTacToe.asm line 0117: unrecognized instruction.          (PROCESSCELL())
+0118   20001             
+0119   20001               A = RAM_CellData[1]
+TicTacToe.asm line 0119: unrecognized instruction.          (A)
+0120   20001               Y = DVG_CenterCell1 - DVG_BoardCommands
+TicTacToe.asm line 0120: unrecognized instruction.          (Y)
+0121   20001               ProcessCell()
+TicTacToe.asm line 0121: unrecognized instruction.          (PROCESSCELL())
+0122   20001             
+0123   20001               A = RAM_CellData[2]
+TicTacToe.asm line 0123: unrecognized instruction.          (A)
+0124   20001               Y = DVG_CenterCell2 - DVG_BoardCommands
+TicTacToe.asm line 0124: unrecognized instruction.          (Y)
+0125   20001               ProcessCell()
+TicTacToe.asm line 0125: unrecognized instruction.          (PROCESSCELL())
+0126   20001             
+0127   20001               A = RAM_CellData[3]
+TicTacToe.asm line 0127: unrecognized instruction.          (A)
+0128   20001               Y = DVG_CenterCell3 - DVG_BoardCommands
+TicTacToe.asm line 0128: unrecognized instruction.          (Y)
+0129   20001               ProcessCell()
+TicTacToe.asm line 0129: unrecognized instruction.          (PROCESSCELL())
+0130   20001             
+0131   20001               A = RAM_CellData[4]
+TicTacToe.asm line 0131: unrecognized instruction.          (A)
+0132   20001               Y = DVG_CenterCell4 - DVG_BoardCommands
+TicTacToe.asm line 0132: unrecognized instruction.          (Y)
+0133   20001               ProcessCell()
+TicTacToe.asm line 0133: unrecognized instruction.          (PROCESSCELL())
+0134   20001             
+0135   20001               A = RAM_CellData[5]
+TicTacToe.asm line 0135: unrecognized instruction.          (A)
+0136   20001               Y = DVG_CenterCell5 - DVG_BoardCommands
+TicTacToe.asm line 0136: unrecognized instruction.          (Y)
+0137   20001               ProcessCell()
+TicTacToe.asm line 0137: unrecognized instruction.          (PROCESSCELL())
+0138   20001             
+0139   20001               A = RAM_CellData[6]
+TicTacToe.asm line 0139: unrecognized instruction.          (A)
+0140   20001               Y = DVG_CenterCell6 - DVG_BoardCommands
+TicTacToe.asm line 0140: unrecognized instruction.          (Y)
+0141   20001               ProcessCell()
+TicTacToe.asm line 0141: unrecognized instruction.          (PROCESSCELL())
+0142   20001             
+0143   20001               A = RAM_CellData[7]
+TicTacToe.asm line 0143: unrecognized instruction.          (A)
+0144   20001               Y = DVG_CenterCell7 - DVG_BoardCommands
+TicTacToe.asm line 0144: unrecognized instruction.          (Y)
+0145   20001               ProcessCell()
+TicTacToe.asm line 0145: unrecognized instruction.          (PROCESSCELL())
+0146   20001             
+0147   20001               A = RAM_CellData[8]
+TicTacToe.asm line 0147: unrecognized instruction.          (A)
+0148   20001               Y = DVG_CenterCell8 - DVG_BoardCommands
+TicTacToe.asm line 0148: unrecognized instruction.          (Y)
+0149   20001               ProcessCell()  
+TicTacToe.asm line 0149: unrecognized instruction.          (PROCESSCELL())
+0150   20001             
+0151   20001             ; Draw the 8 lines
+0152   20001             
+0153   20001               A = RAM_LineData[0]
+TicTacToe.asm line 0153: unrecognized instruction.          (A)
+0154   20001               Y = DVG_WinLine0 - DVG_BoardCommands
+TicTacToe.asm line 0154: unrecognized instruction.          (Y)
+0155   20001               ProcessLine() 
+TicTacToe.asm line 0155: unrecognized instruction.          (PROCESSLINE())
+0156   20001             
+0157   20001               A = RAM_LineData[1]
+TicTacToe.asm line 0157: unrecognized instruction.          (A)
+0158   20001               Y = DVG_WinLine1 - DVG_BoardCommands
+TicTacToe.asm line 0158: unrecognized instruction.          (Y)
+0159   20001               ProcessLine() 
+TicTacToe.asm line 0159: unrecognized instruction.          (PROCESSLINE())
+0160   20001             
+0161   20001               A = RAM_LineData[2]
+TicTacToe.asm line 0161: unrecognized instruction.          (A)
+0162   20001               Y = DVG_WinLine2 - DVG_BoardCommands
+TicTacToe.asm line 0162: unrecognized instruction.          (Y)
+0163   20001               ProcessLine() 
+TicTacToe.asm line 0163: unrecognized instruction.          (PROCESSLINE())
+0164   20001             
+0165   20001               A = RAM_LineData[3]
+TicTacToe.asm line 0165: unrecognized instruction.          (A)
+0166   20001               Y = DVG_WinLine3 - DVG_BoardCommands
+TicTacToe.asm line 0166: unrecognized instruction.          (Y)
+0167   20001               ProcessLine() 
+TicTacToe.asm line 0167: unrecognized instruction.          (PROCESSLINE())
+0168   20001             
+0169   20001               A = RAM_LineData[4]
+TicTacToe.asm line 0169: unrecognized instruction.          (A)
+0170   20001               Y = DVG_WinLine4 - DVG_BoardCommands
+TicTacToe.asm line 0170: unrecognized instruction.          (Y)
+0171   20001               ProcessLine() 
+TicTacToe.asm line 0171: unrecognized instruction.          (PROCESSLINE())
+0172   20001             
+0173   20001               A = RAM_LineData[5]
+TicTacToe.asm line 0173: unrecognized instruction.          (A)
+0174   20001               Y = DVG_WinLine5 - DVG_BoardCommands
+TicTacToe.asm line 0174: unrecognized instruction.          (Y)
+0175   20001               ProcessLine() 
+TicTacToe.asm line 0175: unrecognized instruction.          (PROCESSLINE())
+0176   20001             
+0177   20001               A = RAM_LineData[6]
+TicTacToe.asm line 0177: unrecognized instruction.          (A)
+0178   20001               Y = DVG_WinLine6 - DVG_BoardCommands
+TicTacToe.asm line 0178: unrecognized instruction.          (Y)
+0179   20001               ProcessLine() 
+TicTacToe.asm line 0179: unrecognized instruction.          (PROCESSLINE())
+0180   20001             
+0181   20001               A = RAM_LineData[7]
+TicTacToe.asm line 0181: unrecognized instruction.          (A)
+0182   20001               Y = DVG_WinLine7 - DVG_BoardCommands
+TicTacToe.asm line 0182: unrecognized instruction.          (Y)
+0183   20001               ProcessLine() 
+TicTacToe.asm line 0183: unrecognized instruction.          (PROCESSLINE())
+0184   20001             
+0185   20001             ; End the vector list
+0186   20001             
+0187   20001               Y = DVG_HaltCommand - DVG_BoardCommands
+TicTacToe.asm line 0187: unrecognized instruction.          (Y)
+0188   20001               DVG_CopySequence()
+TicTacToe.asm line 0188: unrecognized instruction.          (DVG_COPYSEQUENCE())
+0189   20001             
+0190   20001             ; Roll all the flash-patterns for lines and cells
+0191   20001             
+0192   20001               A = RAM_CellData[0]
+TicTacToe.asm line 0192: unrecognized instruction.          (A)
+0193   20001               RollFlashPattern()
+TicTacToe.asm line 0193: unrecognized instruction.          (ROLLFLASHPATTERN())
+0194   20001               RAM_CellData[0] = A
+TicTacToe.asm line 0194: unrecognized instruction.          (RAM_CELLDATA[0])
+0195   20001             
+0196   20001               A = RAM_CellData[1]
+TicTacToe.asm line 0196: unrecognized instruction.          (A)
+0197   20001               RollFlashPattern()
+TicTacToe.asm line 0197: unrecognized instruction.          (ROLLFLASHPATTERN())
+0198   20001               RAM_CellData[1] = A
+TicTacToe.asm line 0198: unrecognized instruction.          (RAM_CELLDATA[1])
+0199   20001             
+0200   20001               A = RAM_CellData[2]
+TicTacToe.asm line 0200: unrecognized instruction.          (A)
+0201   20001               RollFlashPattern()
+TicTacToe.asm line 0201: unrecognized instruction.          (ROLLFLASHPATTERN())
+0202   20001               RAM_CellData[2] = A
+TicTacToe.asm line 0202: unrecognized instruction.          (RAM_CELLDATA[2])
+0203   20001             
+0204   20001               A = RAM_CellData[3]
+TicTacToe.asm line 0204: unrecognized instruction.          (A)
+0205   20001               RollFlashPattern()
+TicTacToe.asm line 0205: unrecognized instruction.          (ROLLFLASHPATTERN())
+0206   20001               RAM_CellData[3] = A
+TicTacToe.asm line 0206: unrecognized instruction.          (RAM_CELLDATA[3])
+0207   20001             
+0208   20001               A = RAM_CellData[4]
+TicTacToe.asm line 0208: unrecognized instruction.          (A)
+0209   20001               RollFlashPattern()
+TicTacToe.asm line 0209: unrecognized instruction.          (ROLLFLASHPATTERN())
+0210   20001               RAM_CellData[4] = A
+TicTacToe.asm line 0210: unrecognized instruction.          (RAM_CELLDATA[4])
+0211   20001             
+0212   20001               A = RAM_CellData[5]
+TicTacToe.asm line 0212: unrecognized instruction.          (A)
+0213   20001               RollFlashPattern()
+TicTacToe.asm line 0213: unrecognized instruction.          (ROLLFLASHPATTERN())
+0214   20001               RAM_CellData[5] = A
+TicTacToe.asm line 0214: unrecognized instruction.          (RAM_CELLDATA[5])
+0215   20001             
+0216   20001               A = RAM_CellData[6]
+TicTacToe.asm line 0216: unrecognized instruction.          (A)
+0217   20001               RollFlashPattern()
+TicTacToe.asm line 0217: unrecognized instruction.          (ROLLFLASHPATTERN())
+0218   20001               RAM_CellData[6] = A
+TicTacToe.asm line 0218: unrecognized instruction.          (RAM_CELLDATA[6])
+0219   20001             
+0220   20001               A = RAM_CellData[7]
+TicTacToe.asm line 0220: unrecognized instruction.          (A)
+0221   20001               RollFlashPattern()
+TicTacToe.asm line 0221: unrecognized instruction.          (ROLLFLASHPATTERN())
+0222   20001               RAM_CellData[7] = A
+TicTacToe.asm line 0222: unrecognized instruction.          (RAM_CELLDATA[7])
+0223   20001             
+0224   20001               A = RAM_CellData[8]
+TicTacToe.asm line 0224: unrecognized instruction.          (A)
+0225   20001               RollFlashPattern()
+TicTacToe.asm line 0225: unrecognized instruction.          (ROLLFLASHPATTERN())
+0226   20001               RAM_CellData[8] = A
+TicTacToe.asm line 0226: unrecognized instruction.          (RAM_CELLDATA[8])
+0227   20001             
+0228   20001               A = RAM_LineData[0]
+TicTacToe.asm line 0228: unrecognized instruction.          (A)
+0229   20001               RollFlashPattern()
+TicTacToe.asm line 0229: unrecognized instruction.          (ROLLFLASHPATTERN())
+0230   20001               RAM_LineData[0] = A
+TicTacToe.asm line 0230: unrecognized instruction.          (RAM_LINEDATA[0])
+0231   20001             
+0232   20001               A = RAM_LineData[1]
+TicTacToe.asm line 0232: unrecognized instruction.          (A)
+0233   20001               RollFlashPattern()
+TicTacToe.asm line 0233: unrecognized instruction.          (ROLLFLASHPATTERN())
+0234   20001               RAM_LineData[1] = A
+TicTacToe.asm line 0234: unrecognized instruction.          (RAM_LINEDATA[1])
+0235   20001             
+0236   20001               A = RAM_LineData[2]
+TicTacToe.asm line 0236: unrecognized instruction.          (A)
+0237   20001               RollFlashPattern()
+TicTacToe.asm line 0237: unrecognized instruction.          (ROLLFLASHPATTERN())
+0238   20001               RAM_LineData[2] = A
+TicTacToe.asm line 0238: unrecognized instruction.          (RAM_LINEDATA[2])
+0239   20001             
+0240   20001               A = RAM_LineData[3]
+TicTacToe.asm line 0240: unrecognized instruction.          (A)
+0241   20001               RollFlashPattern()
+TicTacToe.asm line 0241: unrecognized instruction.          (ROLLFLASHPATTERN())
+0242   20001               RAM_LineData[3] = A
+TicTacToe.asm line 0242: unrecognized instruction.          (RAM_LINEDATA[3])
+0243   20001             
+0244   20001               A = RAM_LineData[4]
+TicTacToe.asm line 0244: unrecognized instruction.          (A)
+0245   20001               RollFlashPattern()
+TicTacToe.asm line 0245: unrecognized instruction.          (ROLLFLASHPATTERN())
+0246   20001               RAM_LineData[4] = A
+TicTacToe.asm line 0246: unrecognized instruction.          (RAM_LINEDATA[4])
+0247   20001             
+0248   20001               A = RAM_LineData[5]
+TicTacToe.asm line 0248: unrecognized instruction.          (A)
+0249   20001               RollFlashPattern()
+TicTacToe.asm line 0249: unrecognized instruction.          (ROLLFLASHPATTERN())
+0250   20001               RAM_LineData[5] = A
+TicTacToe.asm line 0250: unrecognized instruction.          (RAM_LINEDATA[5])
+0251   20001             
+0252   20001               A = RAM_LineData[6]
+TicTacToe.asm line 0252: unrecognized instruction.          (A)
+0253   20001               RollFlashPattern()
+TicTacToe.asm line 0253: unrecognized instruction.          (ROLLFLASHPATTERN())
+0254   20001               RAM_LineData[6] = A
+TicTacToe.asm line 0254: unrecognized instruction.          (RAM_LINEDATA[6])
+0255   20001             
+0256   20001               A = RAM_LineData[7]
+TicTacToe.asm line 0256: unrecognized instruction.          (A)
+0257   20001               RollFlashPattern()
+TicTacToe.asm line 0257: unrecognized instruction.          (ROLLFLASHPATTERN())
+0258   20001               RAM_LineData[7] = A
+TicTacToe.asm line 0258: unrecognized instruction.          (RAM_LINEDATA[7])
+0259   20001             
+0260   20001             }
+TicTacToe.asm line 0260: unrecognized directive.            (})
+0261   20001             
+0262   20001             ; This routine copies the WORD commands from the data at Y to
+0263   20001             ; the DVG at RAM incrementing X along the way.
+0264   20001             ;
+0265   20001             DVG_CopySequence() { ; X=RAM offset, Y=data offset, next RAM offset->X
+TicTacToe.asm line 0265: Label not found: (DVG_CopySequence)
+TicTacToe.asm line 0265: label value misalligned.           (DVG_CopySequence())
+TicTacToe.asm line 0265: unrecognized directive.            (DVG_CopySequence())
+0266   20001             
+0267   20001               do {
+TicTacToe.asm line 0267: unrecognized instruction.          (DO)
+0268   20001             
+0269   20001                 ; Copy first byte as-is
+0270   20001                 A = DVG_BoardCommands[Y]    
+TicTacToe.asm line 0270: unrecognized instruction.          (A)
+0271   20001                 ++Y
+TicTacToe.asm line 0271: unrecognized directive.            (++Y)
+0272   20001                 DVG_RAM[X] = A   
+TicTacToe.asm line 0272: unrecognized instruction.          (DVG_RAM[X])
+0273   20001                 ++X     
+TicTacToe.asm line 0273: unrecognized directive.            (++X)
+0274   20001             
+0275   20001                 ; Get the second byte    
+0276   20001                 A = DVG_BoardCommands[Y]
+TicTacToe.asm line 0276: unrecognized instruction.          (A)
+0277   20001                 ++Y
+TicTacToe.asm line 0277: unrecognized directive.            (++Y)
+0278   20001                 if(A==0) {      
+TicTacToe.asm line 0278: unrecognized instruction.          (IF(A=)
+0279   20001                   --X
+TicTacToe.asm line 0279: unrecognized directive.            (--X)
+0280   20001                   return  ; Back over 1st byte
+TicTacToe.asm line 0280: unrecognized instruction.          (RETURN)
+0281   20001                 }
+TicTacToe.asm line 0281: unrecognized directive.            (})
+0282   20001                 
+0283   20001                 ; Store second byte         
+0284   20001                 DVG_RAM[X] = A 
+TicTacToe.asm line 0284: unrecognized instruction.          (DVG_RAM[X])
+0285   20001                 ++X  
+TicTacToe.asm line 0285: unrecognized directive.            (++X)
+0286   20001                 
+0287   20001               } while(true)
+TicTacToe.asm line 0287: unrecognized directive.            (})
+0288   20001             
+0289   20001             }
+TicTacToe.asm line 0289: unrecognized directive.            (})
+0290   20001             
+0291   20001             ;</EditorTab>
+0292   20001             
+0293   20001             ;<EditorTab name="DVG Commands">
+0294   20001             DVG_BoardCommands:
+TicTacToe.asm line 0295: Label not found: (xe4)
+TicTacToe.asm line 0295: Label not found: (xa0)
+TicTacToe.asm line 0295: Label not found: (x2c)
+TicTacToe.asm line 0295: Label not found: (x11)
+0295   20001 00 00 00 00   .byte 0xe4,0xa0,0x2c,0x11
+TicTacToe.asm line 0296: Label not found: (x0e)
+TicTacToe.asm line 0296: Label not found: (xf1)
+0296   20005 00 00         .byte 0x0e,0xf1   
+TicTacToe.asm line 0297: Label not found: (xca)
+TicTacToe.asm line 0297: Label not found: (xf8)
+0297   20007 00 00         .byte 0xca,0xf8   
+TicTacToe.asm line 0298: Label not found: (xb)
+TicTacToe.asm line 0298: Label not found: (xf6)
+0298   20009 00 00         .byte 0xb,0xf6   
+TicTacToe.asm line 0299: Label not found: (x00)
+TicTacToe.asm line 0299: Label not found: (x60)
+0299   2000B 00 00         .byte 0x00,0x60  
+TicTacToe.asm line 0300: Label not found: (x80)
+TicTacToe.asm line 0300: Label not found: (xd6)
+0300   2000D 00 00         .byte 0x80,0xd6  
+TicTacToe.asm line 0301: Label not found: (xdb)
+TicTacToe.asm line 0301: Label not found: (xf6)
+0301   2000F 00 00         .byte 0xdb,0xf6
+TicTacToe.asm line 0302: Label not found: (xca)
+TicTacToe.asm line 0302: Label not found: (xf8)
+TicTacToe.asm line 0302: Label not found: (xdb)
+TicTacToe.asm line 0302: Label not found: (xf2)
+TicTacToe.asm line 0302: Label not found: (xdf)
+TicTacToe.asm line 0302: Label not found: (xf2)
+TicTacToe.asm line 0302: Label not found: (xcd)
+TicTacToe.asm line 0302: Label not found: (xf2)
+TicTacToe.asm line 0302: Label not found: (xcd)
+TicTacToe.asm line 0302: Label not found: (xf8)
+TicTacToe.asm line 0302: Label not found: (xcd)
+TicTacToe.asm line 0302: Label not found: (xf6)
+TicTacToe.asm line 0302: Label not found: (xdf)
+TicTacToe.asm line 0302: Label not found: (xf6)
+0302   20011 00 00 00 00   .byte 0xca,0xf8,   0xdb,0xf2,   0xdf,0xf2,  0xcd,0xf2,  0xcd,0xf8,  0xcd,0xf6,  0xdf,0xf6
+0302   20015 00 00 00 00 
+0302   20019 00 00 00 00 
+0302   2001D 00 00 
+0303   2001F 00 00         .byte 0,0
+0304   20021             
+0305   20021             DVG_X_Commands:
+0306   20021 00 00         .byte 0,0
+0307   20023             
+0308   20023             DVG_O_Commands:
+0309   20023 00 00         .byte 0,0
+0310   20025             
+0311   20025             
+0312   20025             DVG_HaltCommand:
+TicTacToe.asm line 0313: Label not found: (xb0)
+0313   20025 00 00         .byte 0,0xb0
+0314   20027 00 00         .byte 0,0
+0315   20029             
+0316   20029             
+0317   20029             DVG_CenterCell0:
+0318   20029 00 00         .byte 0,0
+0319   2002B             DVG_CenterCell1:
+0320   2002B 00 00         .byte 0,0
+0321   2002D             DVG_CenterCell2:
+0322   2002D 00 00         .byte 0,0
+0323   2002F             DVG_CenterCell3:
+0324   2002F 00 00         .byte 0,0
+0325   20031             DVG_CenterCell4:
+0326   20031 00 00         .byte 0,0
+0327   20033             DVG_CenterCell5:
+0328   20033 00 00         .byte 0,0
+0329   20035             DVG_CenterCell6:
+0330   20035 00 00         .byte 0,0
+0331   20037             DVG_CenterCell7:
+0332   20037 00 00         .byte 0,0
+0333   20039             DVG_CenterCell8:
+0334   20039 00 00         .byte 0,0
+0335   2003B             
+0336   2003B             
+0337   2003B             DVG_WinLine0:
+0338   2003B 00 00         .byte 0,0
+0339   2003D             DVG_WinLine1:
+0340   2003D 00 00         .byte 0,0
+0341   2003F             DVG_WinLine2:
+0342   2003F 00 00         .byte 0,0
+0343   20041             DVG_WinLine3:
+0344   20041 00 00         .byte 0,0
+0345   20043             DVG_WinLine4:
+0346   20043 00 00         .byte 0,0
+0347   20045             DVG_WinLine5:
+0348   20045 00 00         .byte 0,0
+0349   20047             DVG_WinLine6:
+0350   20047 00 00         .byte 0,0
+0351   20049             DVG_WinLine7:
+0352   20049 00 00         .byte 0,0
+0353   2004B             
+0354   2004B             
+0355   2004B             ;</EditorTab>
+0356   2004B             
+0357   2004B             ;<EditorTab name="Interrupts">
+0358   2004B             
+0359   2004B             NMIHandler:
+0360   2004B 40             RTI
+0361   2004C             
+0362   2004C             IRQHandler:
+0363   2004C 40             RTI
+0364   2004D             
+0365   2004D             ;</EditorTab>
+0366   2004D             
+0367   2004D             ;<EditorTab name="Vectors">
+0368   2004D             
+TicTacToe.asm line 0369: Label not found: (xFFFA)
+0369   20000                .org   0xFFFA        ; Ghosting to 0xFFFA for 2K part
+0370   20000 4B 00          .WORD  NMIHandler    ; NMI vector (not used)
+TicTacToe.asm line 0371: Label not found: (main)
+TicTacToe.asm line 0371: Label not found: (main)
+0371   20002 00 00          .WORD  main          ; Reset vector (start of program)
+0372   20004 4C 00          .WORD  IRQHandler    ; IRQ vector
+0373   20006             
+0374   20006             ;</EditorTab>
+0375   20006             
+0376   20006             SnapShot:
+0377   20006 01 E2 04 A2   .byte 1,226,4,162,8,0,0,112,0,0,243,200,24,162,24,3,0,112,0,0,26,201
+0377   2000A 08 00 00 70 
+0377   2000E 00 00 F3 C8 
+0377   20012 18 A2 18 03 
+0377   20016 00 70 00 00 
+0377   2001A 1A C9 
+0378   2001C 18 A2 18 03   .byte 24,162,24,3,0,112,0,0,26,201,24,162,24,3,0,112,0,0,26,201,82,200
+0378   20020 00 70 00 00 
+0378   20024 1A C9 18 A2 
+0378   20028 18 03 00 70 
+0378   2002C 00 00 1A C9 
+0378   20030 52 C8 
+0379   20032 6C A0 64 10   .byte 108,160,100,16,0,112,0,0,44,203,44,203,44,203,221,202,221,202,108
+0379   20036 00 70 00 00 
+0379   2003A 2C CB 2C CB 
+0379   2003E 2C CB DD CA 
+0379   20042 DD CA 6C 
+0380   20045 A0 E0 00 00   .byte 160,224,0,0,80,0,0,44,203,44,203,44,203,221,202,221,202,108,160,0
+0380   20049 50 00 00 2C 
+0380   2004D CB 2C CB 2C 
+0380   20051 CB DD CA DD 
+0380   20055 CA 6C A0 00 
+0381   20059 10 00 50 00   .byte 16,0,80,0,0,44,203,44,203,44,203,221,202,221,202,252,160,252,16,176
+0381   2005D 00 2C CB 2C 
+0381   20061 CB 2C CB DD 
+0381   20065 CA DD CA FC 
+0381   20069 A0 FC 10 B0 
+0382   2006D B0 DD CA FC   .byte 176,221,202,252,160,252,16,176,176
+0382   20071 A0 FC 10 B0 
+0382   20075 B0 
+0383   20076             SnapShotEnd:
+0384   20076             
+0385   20076               .end
+tasm: Number of errors = 218

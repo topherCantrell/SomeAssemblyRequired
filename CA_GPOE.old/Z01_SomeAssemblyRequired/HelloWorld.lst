@@ -1,0 +1,30 @@
+                         .PROCESSOR 6502
+                         
+                         .EQU ScreenMemory = 0x2000
+                         
+                         .EQU OurStart = ScreenMemory + 32*3 + 10
+                         
+                         0x0000:
+                         
+0000 : a9 48             A = #0x48       ; ASCII code for 'H'
+0002 : 8d 6a 20          0x206A = A      ; Memory location
+                         
+0005 : a9 65             A = #'e'        ; Let the assembler convert
+0007 : 8d 6b 20          OurStart+1 = A  ; Let the assembler do the math
+                         
+000a : a9 6c             A = #'l'
+000c : 8d 6c 20          OurStart+2 = A
+                         
+000f : a9 6c             A = #'l'
+0011 : 8d 6d 20          OurStart+3 = A
+                         
+0014 : a9 6f             A = #'o'
+0016 : 8d 6e 20          OurStart+4 = A
+
+***** Labels *****
+
+
+***** Equates *****
+
+206A OurStart
+2000 ScreenMemory
