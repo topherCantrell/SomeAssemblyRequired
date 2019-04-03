@@ -1,7 +1,0 @@
-
-+++2990 Tue May 23 11:45:32 CDT 2006
-Plodding along in chapter 1 explaining how to poke values into memory. I truly hate the way the text is
-coming out, but I'm going to force myself to get through it before looking back.
-+++5237 Tue May 23 14:02:10 CDT 2006
-Unbelievable ... just the amount of sheer information that has to get packed into an assembly primer.
-Chapter 1 could be the biggest chapter in the book.
