@@ -1,11 +1,11 @@
 
 # Schematic
 
-![](media/CPU.jpg)
+![](art/CPU.jpg)
 
-![](media/ROMRAM.jpg)
+![](art/ROMRAM.jpg)
 
-![](media/IO.jpg)
+![](art/IO.jpg)
 
 # Memory Map
 
