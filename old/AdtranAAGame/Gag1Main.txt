@@ -1,0 +1,18 @@
+
+Room: c1Main
+
+Set: PersonInRoom to False
+Set: TreeLevel to 1
+Set: WaterGunLocation to Floor
+Set: CableLocation to Floor
+Set: WaterGunLevel to Full
+Set: Digit1Given to False
+Set: Digit2Given to False
+Set: Digit3Given to False
+Set: Digit4Given to False
+
+Description: "GagB.wav:Topher: In this chapter you will meet four famous 
+    ADTRAN employees. Help them out, and they will give you the 4 digit 
+    dialable extension for the next chapter!"
+ 
+Decision: !GOTO! c1SouthLobby

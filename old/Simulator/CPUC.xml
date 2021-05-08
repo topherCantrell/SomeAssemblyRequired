@@ -1,0 +1,65 @@
+
+<CPU title="6502 System" base="16">
+
+  <!-- Early teachings will want the reader to single-step only
+       thus the control to turn the run buttong off -->
+
+  <!-- The more items visible in the memory viewer at once, the more
+       memory and time it takes up thus the control to customize
+       that here -->
+
+  <Controls runButtonVisible="true" memoryViewerPageSize="16" windowLayout="single"/>
+
+  <!-- The processor is the 6502 --> 
+  <Simulator class="simulator.CPU_6502"/>  
+
+  <!-- Early teachings will only use a couple of the registers
+       thus the ability to display only what we want here -->
+
+  <RegisterViewer>
+    <Register name="A"/>
+    <Register name="X"/>
+    <Register name="Y"/>
+    <Separator/>
+    <Register name="PC"/>
+    <Register name="Flags"/>
+    <BitRow>
+      <Bit name="N" description="Negative"   map="Flags:7"/>
+      <Bit name="O" description="Overflow"   map="Flags:6"/>
+      <Bit name="-" description="ignored"    map="Flags:5"/>
+      <Bit name="B" description="Break"      map="Flags:4"/>      
+    </BitRow>
+    <BitRow>      
+      <Bit name="D" description="Decimal"    map="Flags:3"/>
+      <Bit name="I" description="Interrupt"  map="Flags:2"/>
+      <Bit name="Z" description="Zero"       map="Flags:1"/>
+      <Bit name="C" description="Carry"      map="Flags:0"/>
+    </BitRow>
+  </RegisterViewer>  
+
+
+
+
+
+
+  <!-- Here is the system hardware -->
+
+
+
+
+
+  <!-- 1K RAM at 0000 -->
+  <Hardware class="simulator.CPU_RAM" address="0" size="1024"/>
+
+  <!-- A simple 32x8 ASCII text display mapped into memory at 2000 -->
+  <Hardware class="simulator.CPU_TextDisplay" frameTitle="Text Display Device" 
+     width="32" height="8" address="0x2000"/>
+
+  <!-- A random number generator read at C000 -->
+  <Hardware class="simulator.CPU_Random" address="0xC000"/>
+
+  <!-- A keyboard interface read from D000 with optional interrupt generation -->
+  <Hardware class="simulator.CPU_Keyboard" address="0xD000" frameTitle="Keyboard" 
+     bufferSize="20"/>
+
+</CPU>

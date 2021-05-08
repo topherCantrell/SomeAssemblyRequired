@@ -1,0 +1,33 @@
+
+<CPU title="6502 System" base="16">
+
+  <Controls runButtonVisible="true" memoryViewerPageSize="16" windowLayout="single"/>
+
+  <!-- The processor is the 6502 --> 
+  <Simulator class="simulator.CPU_6502"/>  
+
+  <RegisterViewer>
+    <Register name="A"/>
+    <Register name="X"/>
+    <Register name="Y"/>
+    <Separator/>    
+    <Register name="PC"/>    
+  </RegisterViewer>  
+
+  <!-- Here is the system hardware -->
+
+  <!-- 1K RAM at 0000 -->
+  <Hardware class="simulator.CPU_RAM" address="0" size="1024"/>
+
+  <!-- A simple 32x8 ASCII text display mapped into memory at 2000 -->
+  <Hardware class="simulator.CPU_TextDisplay" frameTitle="Text Display Device" 
+     width="32" height="8" address="0x2000"/>
+
+  <!-- A random number generator read at C000 -->
+  <Hardware class="simulator.CPU_Random" address="0xC000"/>
+
+  <!-- A keyboard interface read from D000 with optional interrupt generation -->
+  <Hardware class="simulator.CPU_Keyboard" address="0xD000" frameTitle="Keyboard" 
+     bufferSize="20"/>
+
+</CPU>

@@ -1,9 +1,0 @@
-Power switch: mouser 633-MS12ANG03
-
-1/2 inch by 1/4 inch
-pins 3/8 apart centered 1/8 from the edge
-
-
-Power connector: mouser 163-197-PH-EX
-
-3/4 inch by 9/8

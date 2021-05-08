@@ -1,5 +1,7 @@
 # Address data bus
 
+Intro: the TRON MCP
+
 What the CPU really sees. Yelling out addresses and hopefully getting back answers
 
 # RIOT

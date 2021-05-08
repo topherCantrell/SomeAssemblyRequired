@@ -1,0 +1,4 @@
+# Full Tilt
+A pinball machine is much, much more than a game. That slanted playfield beneath the glass cover is a battleground where good and evil struggle to influence your mind. Pinball is really a test of your ethics. You know the rules: press the buttons to flip the ball back into play. Dress neatly. No smoking. Play a clean game.
+
+But the straight and narrow path usually leads right between your flippers and into your pocket for another quarter. “Cheat!” whispers the little red devil on your shoulder. “Nudge the game just a little! Nobody is looking!” You must know how much cheating you can get away with before the electronic game-cop catches you. Then the buzzer sounds. The scarlet TILT flashes for all to see. And your avatar is sucked off the table to be punished in the hell beneath.

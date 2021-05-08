@@ -1,0 +1,14 @@
+
+Room: c1SouthLobby
+
+Set: PersonInRoom to False
+
+Description: "c1SouthLobbyA.wav: Ashley: You are standing in the south lobby. 
+    The elevators are both out of order. Press 8 to go south and talk to the 
+    attendant. Press 2 to go north out the door to the fountains. Press 4 to 
+    go west to the bathroom."
+
+Decision: 2 c1Fountain
+Decision: 4 c1Bathroom
+Decision: 8 c1Attendant
+

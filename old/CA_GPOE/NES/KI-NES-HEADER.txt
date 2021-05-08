@@ -1,9 +1,0 @@
-08  16K PRG-ROM page count
-00   8K CHR-ROM page count
-10   ROM CTRL-A 
-       Horizontal mirroring ONLY 
-       No SRAM
-       No trainer
-       No 4-screen VRAM layout
-       Mapper - #1 (MMC1)
-00  NES ROM
