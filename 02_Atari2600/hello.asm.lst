@@ -1,0 +1,125 @@
+#### Labels
+DrawRow1         = 0xF048
+DrawRow2         = 0xF057
+NewFrame         = 0xF012
+WaitTimer        = 0xF035
+reset            = 0xF000
+
+#### Defines
+COLUBK           = 0x0009
+COLUPF           = 0x0008
+INTIM            = 0x0284
+PF0              = 0x000D
+PF1              = 0x000E
+PF2              = 0x000F
+RIOT_A_DATA      = 0x0280
+RIOT_A_DDR       = 0x0281
+RIOT_B_DATA      = 0x0282
+RIOT_B_DDR       = 0x0283
+TIM64T           = 0x0296
+VBLANK           = 0x0001
+VSYNC            = 0x0000
+WSYNC            = 0x0002
+_CPU             = 6502
+
+                  ; "Hello World" program for Atari 2600
+                  
+                  ._CPU = 6502
+                  
+                  ; Hardware registers used in this code
+                  .VSYNC  = 0x0000
+                  .VBLANK = 0x0001
+                  .WSYNC  = 0x0002
+                  .COLUPF = 0x0008
+                  .COLUBK = 0x0009
+                  .PF0    = 0x000D
+                  .PF1    = 0x000E
+                  .PF2    = 0x000F
+                  ;
+                  .RIOT_A_DATA   = 0x0280
+                  .RIOT_A_DDR    = 0x0281
+                  .RIOT_B_DATA   = 0x0282
+                  .RIOT_B_DDR    = 0x0283
+                  ;
+                  .INTIM  = 0x0284
+                  .TIM64T = 0x0296
+                  
+                  0xF000:  ; Highest nibble could be 1,3,5,7,9,B,D,F
+                  reset:
+F000: 78               SEI              ; Turn off interrupts
+F001: D8               CLD              ; Clear the "decimal" flag
+F002: A2 FF            LDX  #0xFF       ; Start stack ...
+F004: 9A               TXS              ; ... at end of RAM (01FF)
+F005: A9 C0            LDA  #0xC0       ; Background color ...
+F007: 85 09            STA  COLUBK      ; ... greenish
+F009: A9 40            LDA  #0x40       ; Playfield ...
+F00B: 85 08            STA  COLUPF      ; ... redish
+                  
+F00D: A9 FF            LDA  #0xFF       ; Joystick ports are now ...
+F00F: 8D 81 02         STA  RIOT_A_DDR  ; ... OUTPUTS! WARNING!
+                  
+                  ;============= BETWEEN FRAMES ===================
+                  ;  (start here at the END of every frame)
+                  ;
+                  NewFrame:
+F012: A9 02            LDA   #0x02     ; D1 bit ON (vsync and vblank bits)
+F014: 85 02            STA   WSYNC     ; Wait for the end of the current line
+F016: 85 01            STA   VBLANK    ; Start the vertical blanking
+F018: 85 02            STA   WSYNC     ; Hold ...
+F01A: 85 02            STA   WSYNC     ; ... for three ...
+F01C: 85 02            STA   WSYNC     ; ... scanlines.
+F01E: 85 00            STA   VSYNC     ; Trigger the vertical sync signal
+F020: 85 02            STA   WSYNC     ; Hold the vsync signal for ...
+F022: 85 02            STA   WSYNC     ; ... three ...
+F024: 85 02            STA   WSYNC     ; ... scanlines
+F026: A9 00            LDA   #0x00     ; D1 bit OFF (vsync and vblank bits)
+F028: 85 00            STA   VSYNC     ; Release the vertical sync signal
+F02A: A9 2B            LDA   #43       ; Set timer to 43*64 = 2752 machine ...
+F02C: 8D 96 02         STA   TIM64T    ; ... cycles 2752/(228/3) = 36 scanlines
+                  
+F02F: AD 82 02         LDA   RIOT_B_DATA  ; Copy switches ...
+F032: 8D 80 02         STA   RIOT_A_DATA  ; ... to output
+                  
+                  ; Lots and lots of time here for game logic.
+                  
+                  WaitTimer:
+F035: AD 84 02         LDA   INTIM     ; Wait for the visible ...
+F038: D0 FB            BNE   WaitTimer ; ... part of the screen
+F03A: 85 02            STA   WSYNC     ; 37th scanline
+F03C: A9 00            LDA   #0x00     ; Release the ...
+F03E: 85 01            STA   VBLANK    ; ... blanking
+                  
+                  ;============= VISIBLE PART OF FRAME ==============
+                  
+F040: AD 82 02         LDA   RIOT_B_DATA  ; Copy switches ...
+F043: 8D 80 02         STA   RIOT_A_DATA  ; ... to output
+                  
+F046: A2 5C            LDX   #92       ; 220 total scan lines (~213 visible on my TV)
+                  DrawRow1:
+F048: 85 0D            STA   PF0       ; Draw the ...
+F04A: 85 0E            STA   PF1       ; ... playfield ...
+F04C: 85 0F            STA   PF2       ; ... pattern
+F04E: 85 02            STA   WSYNC     ; Wait for the end of the line
+F050: CA               DEX             ; Count ...
+F051: D0 F5            BNE   DrawRow1  ; ... 220 lines
+                  
+F053: A2 80            LDX   #128      ; 220 scan lines (~213 visible on my TV)
+F055: A9 01            LDA   #1        ; Start value for playfield
+                  DrawRow2:
+F057: 85 0D            STA   PF0       ; Draw the ...
+F059: 85 0E            STA   PF1       ; ... playfield ...
+F05B: 85 0F            STA   PF2       ; ... pattern
+F05D: 85 02            STA   WSYNC     ; Wait for the end of the line
+F05F: 18               CLC             ; Clear the carry for next add
+F060: 69 01            ADC   #1        ; Bump the playfield pattern
+F062: CA               DEX             ; Count ...
+F063: D0 F2            BNE   DrawRow2  ; ... 220 lines
+                  
+F065: 4C 12 F0         JMP   NewFrame  ; Next TV frame
+                  
+                  ;=== 6502 Hardware vectors at the end of memory ===
+                  
+                  0xFFFA:
+FFFA: 00 F0            .word  reset        ; NMI vector
+FFFC: 00 F0            .word  reset        ; RESET vector
+FFFE: 00 F0            .word  reset        ; IRQ vector
